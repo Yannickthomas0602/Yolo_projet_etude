@@ -8,6 +8,13 @@ Le projet final doit couvrir trois étapes:
 2. identifier son espèce,
 3. jouer automatiquement le son correspondant.
 
+Contraintes fonctionnelles du prototype:
+
+- le modèle doit gérer exactement 6 espèces cibles,
+- les sons sont déjà attribués à chaque espèce,
+- les sons d'une même espèce doivent être joués aléatoirement,
+- en test final, on évalue le comportement sur 1000 images d'oiseaux variés.
+
 Le dépôt contient deux voies différentes:
 
 - la détection d'objets avec YOLOv5, utilisée pour localiser l'oiseau dans l'image,
@@ -34,6 +41,8 @@ Si ton dataset contient uniquement une image par espèce, sans annotations de bo
 ## 2. Gestion du dataset
 
 Tu as déjà environ 650 images par espèce. C'est une bonne base pour démarrer, à condition de nettoyer le dataset avant l'entraînement.
+
+Dans cette version, limite le périmètre à 6 espèces exactement. Le but est d'obtenir un prototype fiable et simple à valider.
 
 ### 2.1 Trier et nettoyer les images
 
@@ -66,15 +75,24 @@ dataset/
 ├── train/
 │   ├── moineau/
 │   ├── corbeau/
-│   └── pigeon/
+│   ├── pigeon/
+│   ├── heron/
+│   ├── merle/
+│   └── aigrette/
 ├── validation/
 │   ├── moineau/
 │   ├── corbeau/
-│   └── pigeon/
+│   ├── pigeon/
+│   ├── heron/
+│   ├── merle/
+│   └── aigrette/
 └── test/
     ├── moineau/
     ├── corbeau/
-    └── pigeon/
+    ├── pigeon/
+    ├── heron/
+    ├── merle/
+    └── aigrette/
 ```
 
 Cette structure correspond au mode classification de YOLOv5, comme indiqué dans [README.md](README.md#L364) et dans [data/ImageNet.yaml](data/ImageNet.yaml).
@@ -118,15 +136,24 @@ dataset_oiseaux/
 ├── train/
 │   ├── moineau/
 │   ├── corbeau/
-│   └── pigeon/
+│   ├── pigeon/
+│   ├── heron/
+│   ├── merle/
+│   └── aigrette/
 ├── validation/
 │   ├── moineau/
 │   ├── corbeau/
-│   └── pigeon/
+│   ├── pigeon/
+│   ├── heron/
+│   ├── merle/
+│   └── aigrette/
 └── test/
     ├── moineau/
     ├── corbeau/
-    └── pigeon/
+    ├── pigeon/
+    ├── heron/
+    ├── merle/
+    └── aigrette/
 ```
 
 Chaque sous-dossier correspond à une classe.
@@ -256,7 +283,10 @@ test: images/test
 names:
   0: moineau
   1: corbeau
-  2: pigeon
+    2: pigeon
+    3: heron
+    4: merle
+    5: aigrette
 ```
 
 Le fichier doit pointer vers les dossiers d'images et lister les classes dans le bon ordre.
@@ -330,7 +360,10 @@ project/
 │   │   ├── son_heron2.mp3
 │   │   └── son_heron3.mp3
 │   ├── moineau/
-│   └── pigeon/
+│   ├── corbeau/
+│   ├── pigeon/
+│   ├── merle/
+│   └── aigrette/
 ├── scripts/
 ├── config/
 ├── runs/
@@ -379,9 +412,16 @@ Le système final peut fonctionner ainsi:
 3. recadrage de la zone détectée,
 4. classification de l'espèce,
 5. récupération dans le fichier de configuration de la liste des sons associés à l'espèce,
-6. sélection d'un son parmi les fichiers disponibles,
+6. sélection aléatoire d'un son parmi les fichiers disponibles pour cette espèce,
 7. lecture du son si la confiance dépasse un seuil,
 8. stockage éventuel du résultat dans un journal.
+
+Règles métier de lecture audio à appliquer:
+
+1. si l'oiseau détecté appartient à l'une des 6 espèces et que la confiance est suffisante, jouer un son choisi aléatoirement parmi les sons de cette espèce,
+2. si l'oiseau détecté n'appartient pas aux 6 espèces cibles, ne jouer aucun son,
+3. si le modèle n'est pas sûr (zone d'incertitude), jouer un son de base unique,
+4. appliquer un court délai anti-répétition pour éviter un déclenchement audio en boucle.
 
 Bonnes pratiques temps réel:
 
@@ -397,6 +437,8 @@ Pour un prototype, je recommande cette logique de stockage:
 - garder une seule source de vérité dans un fichier YAML ou JSON,
 - utiliser des noms de dossiers et de fichiers simples,
 - ne pas introduire de base de données tant que le périmètre reste expérimental.
+
+Le caractère aléatoire doit rester strictement par espèce: on ne tire jamais un son d'une autre espèce.
 
 Exemple de règle d'exécution:
 
@@ -418,7 +460,30 @@ Avant de lancer l'entraînement, vérifie:
 - le format des dossiers correspond au type de tâche choisi,
 - le venv est actif et les dépendances sont installées.
 
-## 9. Commandes utiles
+## 9. Test final du prototype (1000 images)
+
+Objectif: estimer le taux d'erreur dans une situation réaliste.
+
+Jeu de test final recommandé:
+
+- 1000 images d'oiseaux variés,
+- mélange d'images appartenant aux 6 espèces cibles et d'images d'autres espèces,
+- images non vues pendant l'entraînement.
+
+Mesures à suivre:
+
+- taux de bonne identification pour les 6 espèces,
+- taux de faux positifs sur les espèces hors périmètre,
+- taux de déclenchement du son de base (incertitude),
+- taux de cas où aucun son est joué correctement pour les espèces hors des 6 classes.
+
+Comportement attendu:
+
+1. oiseau des 6 espèces et confiance suffisante: son aléatoire de l'espèce,
+2. oiseau hors des 6 espèces: aucun son,
+3. confiance insuffisante: son de base.
+
+## 10. Commandes utiles
 
 Activer le venv:
 
@@ -451,7 +516,7 @@ Lancer une détection:
 python train.py --img 640 --batch 16 --epochs 100 --data birds.yaml --weights yolov5s.pt
 ```
 
-## 10. Recommandation pratique
+## 11. Recommandation pratique
 
 Si tu débutes, fais d'abord une version classification simple avec tes images déjà triées par espèce. Ensuite, si tu veux localiser précisément les oiseaux dans des scènes réelles, ajoute un second dataset de détection avec annotations.
 
