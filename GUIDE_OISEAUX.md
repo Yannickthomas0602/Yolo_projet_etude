@@ -325,7 +325,14 @@ project/
 ├── dataset_detection/
 ├── models/
 ├── sounds/
+│   ├── heron/
+│   │   ├── son_heron1.mp3
+│   │   ├── son_heron2.mp3
+│   │   └── son_heron3.mp3
+│   ├── moineau/
+│   └── pigeon/
 ├── scripts/
+├── config/
 ├── runs/
 └── app/
 ```
@@ -336,9 +343,32 @@ Rôle de chaque dossier:
 - `dataset_oiseaux`: dataset de classification nettoyé,
 - `dataset_detection`: dataset annoté pour la détection,
 - `models`: poids entraînés et exports,
-- `sounds`: fichiers audio des espèces,
+- `sounds`: fichiers audio des espèces rangés par dossier d'espèce,
+- `config`: fichier de correspondance entre espèce et sons,
 - `scripts`: préparation des données et automatisations,
 - `app`: intégration caméra, détection et lecture audio.
+
+Pour ton cas, un stockage simple et local est le plus judicieux. Comme les sons sont déjà attribués à chaque espèce, il n'est pas utile de mettre en place une grosse base de données. La solution la plus pratique pour un prototype est:
+
+- un dossier par espèce dans `sounds/`,
+- un fichier de configuration simple en JSON ou YAML qui associe chaque espèce à la liste de ses sons,
+- une logique applicative qui choisit un son aléatoire dans la liste de l'espèce détectée.
+
+Exemple de configuration en YAML:
+
+```yaml
+heron:
+    - sounds/heron/son_heron1.mp3
+    - sounds/heron/son_heron2.mp3
+    - sounds/heron/son_heron3.mp3
+moineau:
+    - sounds/moineau/son_moineau1.mp3
+    - sounds/moineau/son_moineau2.mp3
+pigeon:
+    - sounds/pigeon/son_pigeon1.mp3
+```
+
+Cette approche est simple à maintenir, facile à modifier à la main et suffisante pour un prototype. Elle évite la complexité d'une base de données scalable qui ne serait pas utile à ce stade.
 
 ## 7. Pipeline temps réel
 
@@ -348,8 +378,10 @@ Le système final peut fonctionner ainsi:
 2. détection de l'oiseau,
 3. recadrage de la zone détectée,
 4. classification de l'espèce,
-5. lecture du son associé si la confiance dépasse un seuil,
-6. stockage éventuel du résultat dans un journal.
+5. récupération dans le fichier de configuration de la liste des sons associés à l'espèce,
+6. sélection d'un son parmi les fichiers disponibles,
+7. lecture du son si la confiance dépasse un seuil,
+8. stockage éventuel du résultat dans un journal.
 
 Bonnes pratiques temps réel:
 
@@ -358,6 +390,21 @@ Bonnes pratiques temps réel:
 - garder une mémoire courte pour ne pas répéter le même son en boucle,
 - mesurer la latence entre la capture et la prédiction,
 - utiliser un modèle léger si l'exécution doit être fluide en webcam.
+
+Pour un prototype, je recommande cette logique de stockage:
+
+- stocker les fichiers audio localement dans le dépôt,
+- garder une seule source de vérité dans un fichier YAML ou JSON,
+- utiliser des noms de dossiers et de fichiers simples,
+- ne pas introduire de base de données tant que le périmètre reste expérimental.
+
+Exemple de règle d'exécution:
+
+1. l'espèce détectée vaut `heron`,
+2. l'application lit la liste des sons pour `heron` dans la configuration,
+3. elle choisit aléatoirement `son_heron2.mp3`,
+4. elle le joue une seule fois,
+5. elle attend un délai avant de pouvoir rejouer un son identique.
 
 ## 8. Liste de contrôle avant entraînement
 
@@ -409,3 +456,5 @@ python train.py --img 640 --batch 16 --epochs 100 --data birds.yaml --weights yo
 Si tu débutes, fais d'abord une version classification simple avec tes images déjà triées par espèce. Ensuite, si tu veux localiser précisément les oiseaux dans des scènes réelles, ajoute un second dataset de détection avec annotations.
 
 Cette approche t'évite de te battre dès le départ avec l'annotation de boîtes, tout en te donnant une base exploitable pour le système complet.
+
+Comme tu précises que le projet est un prototype, garde le stockage des sons volontairement simple: dossiers locaux, fichiers MP3 rangés par espèce, et mapping YAML ou JSON. C'est le meilleur compromis entre facilité d'usage et lisibilité du code.
