@@ -13,6 +13,15 @@
 *.TIF
 *.TIFF
 *.HEIC
+!dataset_oiseaux/
+!dataset_oiseaux/**/
+!dataset_oiseaux/**/*.jpg
+!dataset_oiseaux/**/*.jpeg
+!dataset_oiseaux/**/*.png
+!dataset_oiseaux/**/*.bmp
+!dataset_oiseaux/**/*.tif
+!dataset_oiseaux/**/*.tiff
+!dataset_oiseaux/**/*.heic
 *.mp4
 *.mov
 *.MOV
