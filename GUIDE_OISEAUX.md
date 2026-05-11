@@ -1,6 +1,6 @@
 # Guide complet du projet de reconnaissance d'oiseaux
 
-Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 6 espèces complètes** : ce guide décrit donc la cible finale et la façon de préparer le projet pour l'atteindre progressivement.
+Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 4 classes complètes** : ce guide décrit donc la cible finale et la façon de préparer le projet pour l'atteindre progressivement.
 
 Le projet final doit couvrir trois étapes:
 
@@ -10,7 +10,7 @@ Le projet final doit couvrir trois étapes:
 
 Contraintes fonctionnelles du prototype:
 
-- le modèle doit gérer exactement 6 espèces cibles,
+- le modèle doit gérer exactement 4 classes cibles,
 - les sons sont déjà attribués à chaque espèce,
 - les sons d'une même espèce doivent être joués aléatoirement,
 - en test final, on évalue le comportement sur 1000 images d'oiseaux variés.
@@ -42,7 +42,7 @@ Si ton dataset contient uniquement une image par espèce, sans annotations de bo
 
 Tu as déjà environ 650 images par espèce. C'est une bonne base pour démarrer, à condition de nettoyer le dataset avant l'entraînement.
 
-Dans cette version, limite le périmètre à 6 espèces exactement, mais garde en tête qu'à ce stade le dataset n'est pas encore complet. Le but est d'obtenir un prototype fiable et simple à valider, puis de compléter les classes manquantes.
+Dans cette version, limite le périmètre à 4 classes exactement, mais garde en tête qu'à ce stade le dataset n'est pas encore complet. Le but est d'obtenir un prototype fiable et simple à valider, puis de compléter les classes manquantes.
 
 ### 2.1 Trier et nettoyer les images
 
@@ -418,8 +418,8 @@ Le système final peut fonctionner ainsi:
 
 Règles métier de lecture audio à appliquer:
 
-1. si l'oiseau détecté appartient à l'une des 6 espèces et que la confiance est suffisante, jouer un son choisi aléatoirement parmi les sons de cette espèce,
-2. si l'oiseau détecté n'appartient pas aux 6 espèces cibles, ne jouer aucun son,
+1. si l'oiseau détecté appartient à l'une des 4 classes et que la confiance est suffisante, jouer un son choisi aléatoirement parmi les sons de cette classe,
+2. si l'oiseau détecté n'appartient pas aux 4 classes cibles, ne jouer aucun son,
 3. si le modèle n'est pas sûr (zone d'incertitude), jouer un son de base unique,
 4. appliquer un court délai anti-répétition pour éviter un déclenchement audio en boucle.
 
@@ -467,20 +467,20 @@ Objectif: estimer le taux d'erreur dans une situation réaliste.
 Jeu de test final recommandé:
 
 - 1000 images d'oiseaux variés,
-- mélange d'images appartenant aux 6 espèces cibles et d'images d'autres espèces,
+- mélange d'images appartenant aux 4 classes cibles et d'images d'autres espèces,
 - images non vues pendant l'entraînement.
 
 Mesures à suivre:
 
-- taux de bonne identification pour les 6 espèces,
+- taux de bonne identification pour les 4 classes,
 - taux de faux positifs sur les espèces hors périmètre,
 - taux de déclenchement du son de base (incertitude),
-- taux de cas où aucun son est joué correctement pour les espèces hors des 6 classes.
+- taux de cas où aucun son est joué correctement pour les classes hors des 4 classes.
 
 Comportement attendu:
 
-1. oiseau des 6 espèces et confiance suffisante: son aléatoire de l'espèce,
-2. oiseau hors des 6 espèces: aucun son,
+1. oiseau des 4 classes et confiance suffisante: son aléatoire de la classe,
+2. oiseau hors des 4 classes: aucun son,
 3. confiance insuffisante: son de base.
 
 ## 10. Commandes utiles

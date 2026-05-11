@@ -1,6 +1,6 @@
 # Guide Complet : Mise en Place de l'Entraînement YOLOv5 pour la Reconnaissance d'Oiseaux
 
-Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 6 espèces d'oiseaux à partir du projet YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 6 espèces complètes** : ce document décrit donc la cible finale et la manière de préparer le projet pour l'atteindre.
+Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 4 classes d'oiseaux à partir du projet YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 4 classes complètes** : ce document décrit donc la cible finale et la manière de préparer le projet pour l'atteindre.
 
 ---
 
@@ -23,18 +23,16 @@ Ce guide vous explique **étape par étape** comment mettre en place l'entraîne
 
 Créer un système complet de reconnaissance d'oiseaux qui :
 1. **Détecte** l'oiseau dans une image ou un flux vidéo
-2. **Identifie** son espèce parmi 6 espèces cibles
+2. **Identifie** son espèce parmi 4 classes cibles
 3. **Joue** automatiquement un son correspondant
 
-### 1.2 Les 6 espèces cibles
+### 1.2 Les 4 classes cibles
 
-Le prototype vise à gérer exactement ces 6 espèces, mais **à ce stade nous ne les avons pas encore toutes dans le dataset** :
-- **Moineau** (*Passer domesticus*)
-- **Corbeau** (*Corvus*)
-- **Pigeon** (*Columba*)
-- **Héron** (*Ardea*)
-- **Merle** (*Turdus merula*)
-- **Aigrette** (*Egretta*)
+Le prototype vise à gérer exactement ces 4 classes, mais **à ce stade nous ne les avons pas encore toutes dans le dataset** :
+- **Héron**
+- **Balbuzard**
+- **Mouette-Goeland**
+- **Cormoran**
 
 L'objectif du guide est donc de préparer le pipeline de façon progressive, en partant des espèces déjà disponibles puis en complétant les classes manquantes.
 
@@ -439,7 +437,7 @@ Si les résultats ne sont pas satisfaisants :
 Pour le test de production final :
 
 1. Créez un ensemble de **1000 images variées** :
-   - Images des 6 espèces cibles
+    - Images des 4 classes cibles
    - Images d'autres espèces (pour tester les faux positifs)
    - Images non vues pendant l'entraînement
 
@@ -453,7 +451,7 @@ python classify/predict.py `
 ```
 
 3. Mesurez :
-   - Taux de bonne identification pour les 6 espèces
+    - Taux de bonne identification pour les 4 classes
    - Taux de faux positifs sur les autres espèces
    - Confiance moyenne par espèce
 
@@ -698,7 +696,7 @@ Avant de lancer l'entraînement, vérifiez tous ces points :
 ### Noms de classes
 - [ ] Tous les noms de classes sont en minuscules
 - [ ] Aucun accent ni caractère spécial dans les noms
-- [ ] Les 6 classes sont : moineau, corbeau, pigeon, heron, merle, aigrette
+- [ ] Les 4 classes sont : heron, balbuzard, mouette_goeland, cormoran
 
 ### Configuration d'entraînement
 - [ ] Paramètres d'entraînement adaptés à votre matériel
