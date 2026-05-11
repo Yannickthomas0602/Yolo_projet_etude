@@ -1,16 +1,18 @@
 # Journal du projet de reconnaissance d'oiseaux
 
-Ce document suit, étape par étape, ce qui a été fait sur le projet. Il sert de trace claire pour comprendre les choix de classement des images, la préparation du dataset et les actions techniques réalisées.
+Ce document garde une trace simple et lisible de la démarche suivie sur le projet. Il résume la préparation du dataset, l'entraînement, la logique métier BDD / INCERTITUDE / HORS_BDD, puis la mise à jour de la documentation.
 
 ## 1. Objectif du projet
 
-Le but est de préparer un modèle YOLOv5 capable de reconnaître les oiseaux présents dans le dataset du projet et de servir de base à l'entraînement de l'IA.
+Le but est de disposer d'un prototype YOLOv5 capable de reconnaître 4 classes d'oiseaux et de servir de base à un système complet de reconnaissance avec décision métier et lecture audio.
 
 ## 2. Références utilisées
 
-Les consignes et l'organisation du projet ont été construites à partir de :
+Les documents de référence du dépôt sont :
+
 - [GUIDE_OISEAUX.md](GUIDE_OISEAUX.md)
 - [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md)
+- [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md)
 - [README.md](README.md)
 - [classify/tutorial.ipynb](classify/tutorial.ipynb)
 
@@ -18,7 +20,8 @@ Les consignes et l'organisation du projet ont été construites à partir de :
 
 ### 3.1 Dossier source
 
-Les images étaient initialement regroupées dans le dossier [Dataset](Dataset), avec 4 sous-dossiers sources :
+Les images brutes étaient regroupées dans [Dataset](Dataset) avec 4 sous-dossiers d'origine :
+
 - `balbuzard`
 - `heron gris`
 - `pixabay_cormorands`
@@ -26,49 +29,45 @@ Les images étaient initialement regroupées dans le dossier [Dataset](Dataset),
 
 ### 3.2 Classes finales retenues
 
-Après analyse du contenu et des besoins du projet, les images ont été classées dans 4 classes cibles :
+Le projet a été normalisé autour de 4 classes cibles :
+
 - `balbuzard`
 - `heron`
 - `cormoran`
 - `mouette_goeland`
 
-La classe `mouette_goeland` regroupe volontairement les mouettes et les goélands, car ils ont été confondus dans le périmètre retenu.
+La classe `mouette_goeland` regroupe volontairement les mouettes et les goélands, car ils étaient confondus dans le périmètre retenu.
 
-### 3.3 Correspondance source → classe
+### 3.3 Correspondance source vers classe
 
-Le classement effectué a suivi cette logique :
-- `balbuzard` → `balbuzard`
-- `heron gris` → `heron`
-- `pixabay_cormorands` → `cormoran`
-- `pixabay_mouette_goélands` → `mouette_goeland`
+Le classement a suivi cette logique :
+
+- `balbuzard` -> `balbuzard`
+- `heron gris` -> `heron`
+- `pixabay_cormorands` -> `cormoran`
+- `pixabay_mouette_goélands` -> `mouette_goeland`
 
 ### 3.4 Répartition des données
 
-Les images ont été réparties automatiquement en :
+Les images ont été réparties en :
+
 - `train` : 70 %
 - `validation` : 20 %
 - `test` : 10 %
 
-La structure générée est :
-
-```txt
-dataset_oiseaux/
-├── train/
-├── validation/
-└── test/
-```
-
-Chaque split contient les 4 classes ci-dessus.
+Le dataset classé a été généré dans [dataset_oiseaux](dataset_oiseaux).
 
 ### 3.5 Volume obtenu
 
-Répartition approximative obtenue lors du tri :
-- `balbuzard` : 400 images au total
-- `heron gris` : 576 images au total
-- `pixabay_cormorands` : 515 images au total
-- `pixabay_mouette_goélands` : 559 images au total
+Répartition approximative initiale :
 
-Après répartition, le dataset classé contenait :
+- `balbuzard` : 400 images
+- `heron gris` : 576 images
+- `pixabay_cormorands` : 515 images
+- `pixabay_mouette_goélands` : 559 images
+
+Après répartition :
+
 - `train` : 1434 images
 - `validation` : 409 images
 - `test` : 207 images
@@ -77,104 +76,115 @@ Après répartition, le dataset classé contenait :
 
 ### 4.1 Création du dataset classé
 
-Le dossier [dataset_oiseaux](dataset_oiseaux) a été créé à partir du dossier brut [Dataset](Dataset).
+Le dossier [dataset_oiseaux](dataset_oiseaux) a été construit à partir du dossier brut [Dataset](Dataset).
 
 ### 4.2 Suppression du dossier brut
 
-Après vérification que la copie classée était bien complète, le dossier [Dataset](Dataset) a été supprimé pour éviter de conserver les sources brutes dans le dépôt.
+Le dossier brut [Dataset](Dataset) a ensuite été supprimé pour éviter de conserver les sources d'origine dans le dépôt.
 
 ### 4.3 Mise à jour de la documentation
 
-Les guides ont été harmonisés pour refléter la réalité du dataset :
-- 4 classes au lieu de 6 ou 5
-- fusion de mouette et goeland en une seule classe
-- cohérence entre le guide principal et le guide d'installation
+Les guides ont été harmonisés pour refléter l'état réel du projet :
+
+- 4 classes cibles,
+- fusion de mouette et goeland,
+- ajout de la logique BDD / INCERTITUDE / HORS_BDD,
+- ajout d'un guide de lancement dédié.
 
 ### 4.4 Versionnement Git
 
-Le dataset classé a été ajouté au dépôt Git, puis commit et push vers GitHub.
+Le dataset classé, les scripts utilitaires, les poids entraînés et la documentation ont été commités puis poussés sur GitHub.
 
-## 5. État actuel du projet
+## 5. Entraînement du modèle
 
-À ce stade :
-- le dataset brut n'existe plus dans le dépôt
-- le dataset classé est disponible dans [dataset_oiseaux](dataset_oiseaux)
-- les guides décrivent les 4 classes réelles du projet
-- le commit a été poussé sur GitHub
+### 5.1 Configuration retenue
 
-## 6. Convention à suivre pour la suite
+L'entraînement a été lancé avec :
 
-Quand une nouvelle demande arrive, les actions doivent être expliquées et enregistrées ici si elles modifient le projet.
-
-Les points importants à conserver :
-- expliquer la logique du classement si une nouvelle classe apparaît
-- documenter les splits train/validation/test
-- noter toute modification de structure ou de nom de classe
-- garder une trace des commits importants
-
-## 7. Prochaine étape possible
-
-La prochaine étape naturelle est l'entraînement du modèle sur [dataset_oiseaux](dataset_oiseaux), puis la validation des résultats.
-
-## 8. Lancement de l'entraînement
-
-Date de lancement : 11 mai 2026
-
-### 8.1 Paramètres choisis
-
-Pour la première exécution, l'entraînement classification est lancé avec :
 - modèle : `yolov5s-cls.pt`
-- dataset : `dataset_oiseaux`
 - taille d'image : `224`
 - batch size : `32`
 - epochs : `30`
-- device : `0` (RTX 4070 desktop)
+- device : `0` sur la RTX 4070
 
-### 8.2 Commande lancée
+### 5.2 Point de blocage initial
 
-```powershell
-c:/Users/yanni/Desktop/Yolo/yolov5/.venv/Scripts/python.exe classify/train.py --model yolov5s-cls.pt --data C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux --epochs 30 --img 224 --batch 32 --device 0
-```
+La première tentative d'entraînement a échoué à cause d'un chemin de travail incorrect. Le script cherchait à être lancé depuis `C:\Users\yanni\Desktop\Yolo` au lieu du dossier [yolov5](.).
 
-### 8.3 Objectif de cette exécution
+### 5.3 Correction GPU
 
-L'objectif est de produire un premier modèle de classification pour les 4 classes du projet et de récupérer les métriques d'entraînement et de validation.
+Le venv a ensuite été mis à jour avec une version CUDA de PyTorch :
 
-### 8.4 Ajustement après erreur de lancement
-
-La première tentative d'exécution a échoué parce que le terminal a cherché `classify/train.py` depuis `C:\Users\yanni\Desktop\Yolo` au lieu du dossier [yolov5](.).
-
-Correction appliquée : lancement du script avec son chemin absolu pour éviter toute ambiguïté de répertoire de travail.
-
-### 8.5 État du lancement
-
-L'entraînement a bien été relancé avec le bon chemin absolu. Au moment de cette mise à jour, le terminal n'a pas encore affiché la première epoch, ce qui correspond souvent à la phase d'initialisation ou de chargement du modèle.
-
-### 8.6 Diagnostic GPU
-
-Le lancement en `--device 0` a échoué car le venv actuel utilise `torch 2.11.0+cpu`. La vérification Python a confirmé :
-- `torch.cuda.is_available() = False`
-- `torch.cuda.device_count() = 0`
-
-Conclusion : le projet ne voit pas la RTX 4070 tant que PyTorch CUDA n'est pas installé dans l'environnement virtuel.
-
-### 8.7 Correction GPU
-
-Le venv a été mis à jour avec les paquets CUDA suivants :
 - `torch 2.6.0+cu124`
 - `torchvision 0.21.0+cu124`
 - `torchaudio 2.6.0+cu124`
 
-La vérification Python confirme maintenant :
+La vérification a confirmé :
+
 - `torch.cuda.is_available() = True`
 - `torch.cuda.device_count() = 1`
 - GPU détecté : `NVIDIA GeForce RTX 4070 Laptop GPU`
 
-L'entraînement peut maintenant être relancé sur GPU.
+### 5.4 Entraînement réussi
 
-### 8.8 Relance de l'entraînement
+L'entraînement de référence a été exécuté avec succès sur le dataset préparé.
 
-L'entraînement a été relancé après activation CUDA du venv, avec la même commande que précédemment. Le processus est maintenant en cours d'initialisation dans le terminal dédié.
+- Résultats sauvegardés dans `runs/train-cls/exp4`
+- Poids finaux : `runs/train-cls/exp4/weights/best.pt` et `runs/train-cls/exp4/weights/last.pt`
 
-- Training completed on dataset_train_only; results saved to runs/train-cls/exp4
-- Preparing to push weights (runs/train-cls/exp4/weights) and journal to GitHub.
+## 6. Logique métier ajoutée
+
+Une logique de décision a été ajoutée dans [classify/predict.py](classify/predict.py) pour distinguer trois états :
+
+- `BDD` : l'espèce est reconnue avec une confiance suffisante,
+- `INCERTITUDE` : la confiance est intermédiaire,
+- `HORS_BDD` : la confiance est trop faible pour valider la classe.
+
+Cette logique est pilotée par deux seuils :
+
+- seuil BDD : `0.60`
+- seuil incertitude : `0.30`
+
+## 7. Validation de l'inférence
+
+Un test a été réalisé sur [pixabay_91570.jpg](dataset_oiseaux/train/cormoran/pixabay_91570.jpg).
+
+Résultat observé :
+
+- prédiction principale : `cormoran`
+- confiance élevée
+- statut métier validé selon le seuil choisi
+
+Le comportement a aussi été vérifié avec des seuils plus stricts pour forcer les sorties `INCERTITUDE` puis `HORS_BDD`.
+
+## 8. Mise à jour de la documentation
+
+Les documents Markdown ont été remis en cohérence avec l'état actuel du projet.
+
+### 8.1 Fichiers concernés
+
+- [GUIDE_OISEAUX.md](GUIDE_OISEAUX.md)
+- [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md)
+- [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md)
+
+### 8.2 Ce qui a été clarifié
+
+- la démarche complète du projet,
+- les chemins réels pour lancer l'IA,
+- les commandes pour l'entraînement et l'inférence,
+- la règle métier BDD / incertitude / hors BDD,
+- le guide court de lancement.
+
+## 9. État actuel du projet
+
+À ce stade :
+
+- le dataset brut n'existe plus dans le dépôt,
+- le dataset classé est disponible dans [dataset_oiseaux](dataset_oiseaux),
+- un modèle de référence est disponible dans `runs/train-cls/exp4`,
+- la logique de décision est déjà intégrée,
+- la documentation est regroupée autour d'un guide principal, d'un guide d'installation et d'un guide de lancement.
+
+## 10. Prochaine étape possible
+
+La prochaine étape naturelle est de brancher la décision métier sur la lecture audio et d'industrialiser le test final sur 1000 images variées.

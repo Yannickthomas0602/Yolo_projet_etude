@@ -64,6 +64,17 @@ from utils.general import (
 from utils.torch_utils import select_device, smart_inference_mode
 
 
+def classify_bird_status(score, bdd_thres=0.6, uncertainty_thres=0.3):
+    """Map a top-1 confidence score to the prototype decision states."""
+    bdd_thres = max(bdd_thres, uncertainty_thres)
+    uncertainty_thres = min(bdd_thres, uncertainty_thres)
+    if score >= bdd_thres:
+        return "bdd"
+    if score >= uncertainty_thres:
+        return "incertitude"
+    return "hors_bdd"
+
+
 @smart_inference_mode()
 def run(
     weights=ROOT / "yolov5s-cls.pt",  # model.pt path(s)
@@ -80,6 +91,8 @@ def run(
     project=ROOT / "runs/predict-cls",  # save results to project/name
     name="exp",  # save results to project/name
     exist_ok=False,  # existing project/name ok, do not increment
+    bdd_thres=0.6,  # minimum confidence to accept a class as in BDD
+    uncertainty_thres=0.3,  # minimum confidence to be considered uncertain
     half=False,  # use FP16 half-precision inference
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
@@ -152,10 +165,15 @@ def run(
 
             # Print results
             top5i = prob.argsort(0, descending=True)[:5].tolist()  # top 5 indices
+            top1i = top5i[0]
+            top1_score = float(prob[top1i])
+            status = classify_bird_status(top1_score, bdd_thres, uncertainty_thres)
+            status_label = {"bdd": "BDD", "incertitude": "INCERTITUDE", "hors_bdd": "HORS_BDD"}[status]
+            s += f"[{status_label}] {names[top1i]} {top1_score:.2f}, "
             s += f"{', '.join(f'{names[j]} {prob[j]:.2f}' for j in top5i)}, "
 
             # Write results
-            text = "\n".join(f"{prob[j]:.2f} {names[j]}" for j in top5i)
+            text = "\n".join([f"{status_label}: {names[top1i]} {top1_score:.2f}"] + [f"{prob[j]:.2f} {names[j]}" for j in top5i])
             if save_img or view_img:  # Add bbox to image
                 annotator.text([32, 32], text, txt_color=(255, 255, 255))
             if save_txt:  # Write to file
@@ -221,6 +239,10 @@ def parse_opt():
     parser.add_argument("--project", default=ROOT / "runs/predict-cls", help="save results to project/name")
     parser.add_argument("--name", default="exp", help="save results to project/name")
     parser.add_argument("--exist-ok", action="store_true", help="existing project/name ok, do not increment")
+    parser.add_argument("--bdd-thres", type=float, default=0.6, help="minimum confidence to accept a class as in BDD")
+    parser.add_argument(
+        "--uncertainty-thres", type=float, default=0.3, help="minimum confidence to be considered uncertain"
+    )
     parser.add_argument("--half", action="store_true", help="use FP16 half-precision inference")
     parser.add_argument("--dnn", action="store_true", help="use OpenCV DNN for ONNX inference")
     parser.add_argument("--vid-stride", type=int, default=1, help="video frame-rate stride")

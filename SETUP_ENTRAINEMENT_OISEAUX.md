@@ -1,6 +1,8 @@
 # Guide Complet : Mise en Place de l'Entraînement YOLOv5 pour la Reconnaissance d'Oiseaux
 
-Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 4 classes d'oiseaux à partir du projet YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 4 classes complètes** : ce document décrit donc la cible finale et la manière de préparer le projet pour l'atteindre.
+Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 4 classes d'oiseaux à partir du projet YOLOv5. Le prototype est déjà organisé autour du dataset classé, de l'entraînement GPU et d'une logique de sortie pour `BDD`, `INCERTITUDE` et `HORS_BDD`.
+
+Pour lancer directement le modèle ou tester une image, consultez d'abord [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md).
 
 ---
 
@@ -34,7 +36,7 @@ Le prototype vise à gérer exactement ces 4 classes, mais **à ce stade nous ne
 - **Mouette-Goeland**
 - **Cormoran**
 
-L'objectif du guide est donc de préparer le pipeline de façon progressive, en partant des espèces déjà disponibles puis en complétant les classes manquantes.
+L'objectif du guide est donc de décrire la préparation du pipeline, le lancement de l'entraînement et la façon de tester le modèle avec les seuils de décision.
 
 ### 1.3 Approche recommandée : Classification
 
@@ -51,6 +53,15 @@ Cette approche offre plusieurs avantages :
 ### 1.4 Données disponibles
 
 Vous disposez d'environ **650 images par espèce**, ce qui est une bonne base pour démarrer.
+
+### 1.5 État réel du projet dans ce dépôt
+
+Le dépôt contient déjà :
+
+- le dataset classé dans [dataset_oiseaux](dataset_oiseaux),
+- le modèle entraîné de référence dans `runs/train-cls/exp4`,
+- un journal détaillé dans [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md),
+- la logique de décision `BDD` / `INCERTITUDE` / `HORS_BDD` dans [classify/predict.py](classify/predict.py).
 
 ---
 
@@ -326,7 +337,7 @@ YOLOv5 propose plusieurs tailles de modèles pour la classification :
 | Paramètre | Valeur | Explication |
 |-----------|--------|-------------|
 | `--model` | `yolov5s-cls.pt` | Modèle de départ (poids pré-entraînés) |
-| `--data` | `dataset_oiseaux` | Dossier contenant les données (train/validation) |
+| `--data` | `dataset_oiseaux` | Dossier contenant les données (train/validation/test) |
 | `--epochs` | `20-50` | Nombre de passages sur l'ensemble d'entraînement |
 | `--img` | `224` | Taille des images (224x224 pixels pour classification) |
 | `--batch` | `32` | Nombre d'images traitées simultanément |
@@ -339,7 +350,7 @@ Depuis le répertoire yolov5 avec le venv activé :
 ```powershell
 python classify/train.py `
   --model yolov5s-cls.pt `
-  --data C:\Users\yanni\Desktop\Yolo\dataset_oiseaux `
+    --data dataset_oiseaux `
   --epochs 30 `
   --img 224 `
   --batch 32 `
@@ -348,7 +359,7 @@ python classify/train.py `
 
 **Explications des arguments :**
 - `--model yolov5s-cls.pt` : modèle petit (bon compromis vitesse/précision)
-- `--data` : chemin complet vers votre dossier dataset
+- `--data` : dossier dataset à la racine du dépôt (`dataset_oiseaux`)
 - `--epochs 30` : 30 passages sur les données (augmentez à 50-100 si le dataset est petit)
 - `--img 224` : format standard pour la classification
 - `--batch 32` : traitez 32 images à la fois (réduisez à 16 si erreur mémoire GPU)
@@ -395,8 +406,8 @@ Après l'entraînement, validez le modèle :
 
 ```powershell
 python classify/val.py `
-  --data C:\Users\yanni\Desktop\Yolo\dataset_oiseaux `
-  --weights runs/train-cls/exp/weights/best.pt `
+    --data dataset_oiseaux `
+    --weights runs/train-cls/exp4/weights/best.pt `
   --img 224 `
   --batch 32
 ```
@@ -409,12 +420,15 @@ Testez sur des images non vues pendant l'entraînement :
 
 ```powershell
 python classify/predict.py `
-  --weights runs/train-cls/exp/weights/best.pt `
-  --source C:\Users\yanni\Desktop\Yolo\dataset_oiseaux\test\moineau\oiseau_001.jpg `
-  --img 224
+    --weights runs/train-cls/exp4/weights/best.pt `
+    --source C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux\test\cormoran\pixabay_91570.jpg `
+    --img 224 `
+    --device 0 `
+    --bdd-thres 0.60 `
+    --uncertainty-thres 0.30
 ```
 
-Le modèle affichera la classe prédite et la confiance.
+Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`).
 
 ### 6.3 Interprétation des résultats
 
@@ -445,15 +459,20 @@ Pour le test de production final :
 
 ```powershell
 python classify/predict.py `
-  --weights runs/train-cls/exp/weights/best.pt `
+    --weights runs/train-cls/exp4/weights/best.pt `
   --source C:\chemin\vers\test_final_1000_images\ `
-  --img 224
+    --img 224 `
+    --device 0 `
+    --bdd-thres 0.60 `
+    --uncertainty-thres 0.30
 ```
 
 3. Mesurez :
     - Taux de bonne identification pour les 4 classes
    - Taux de faux positifs sur les autres espèces
-   - Confiance moyenne par espèce
+    - Confiance moyenne par espèce
+    - Taux d'incertitude
+    - Taux de rejet hors BDD
 
 ---
 
@@ -682,6 +701,7 @@ Avant de lancer l'entraînement, vérifiez tous ces points :
 ### Dataset
 - [ ] Dossier `dataset_raw/` contient les images brutes
 - [ ] Dossier `dataset_oiseaux/` avec structure train/validation/test
+- [ ] Guide rapide disponible dans [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md)
 - [ ] Chaque espèce dans ses propres sous-dossiers
 - [ ] Aucune image floue, trop sombre ou cassée
 - [ ] Doublons supprimés

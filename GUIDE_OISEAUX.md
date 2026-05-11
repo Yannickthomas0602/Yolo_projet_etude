@@ -1,6 +1,8 @@
 # Guide complet du projet de reconnaissance d'oiseaux
 
-Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 4 classes complètes** : ce guide décrit donc la cible finale et la façon de préparer le projet pour l'atteindre progressivement.
+Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. Le prototype actuel est déjà organisé autour des 4 classes cibles, du dataset classé et d'une logique de décision BDD / incertitude / hors BDD.
+
+Si tu veux lancer directement le modèle ou tester une image, commence par [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md). Si tu veux suivre la démarche complète, lis aussi [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md) et [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md).
 
 Le projet final doit couvrir trois étapes:
 
@@ -37,6 +39,20 @@ Cette séparation a plusieurs avantages:
 - l'application finale reste plus simple à faire évoluer.
 
 Si ton dataset contient uniquement une image par espèce, sans annotations de boîtes, tu peux commencer par la classification. Si tu veux détecter un oiseau dans une scène avec arrière-plan, il faudra annoter des boîtes de détection.
+
+## 1.1 Démarche suivie dans ce dépôt
+
+La démarche appliquée dans ce projet est simple et progressive :
+
+1. classer les images du dossier brut dans 4 espèces finales,
+2. normaliser les noms de classes pour éviter les problèmes de chemins,
+3. séparer le dataset en train, validation et test,
+4. entraîner un premier classifieur YOLOv5 sur GPU,
+5. ajouter une logique métier pour distinguer `BDD`, `INCERTITUDE` et `HORS_BDD`,
+6. valider l'inférence sur une image connue,
+7. documenter la procédure pour pouvoir relancer le modèle sans ambiguïté.
+
+L'objectif n'est pas seulement de produire un modèle, mais aussi de garder une trace claire de chaque étape pour qu'un futur lancement soit reproductible.
 
 ## 2. Gestion du dataset
 
@@ -422,6 +438,14 @@ Règles métier de lecture audio à appliquer:
 2. si l'oiseau détecté n'appartient pas aux 4 classes cibles, ne jouer aucun son,
 3. si le modèle n'est pas sûr (zone d'incertitude), jouer un son de base unique,
 4. appliquer un court délai anti-répétition pour éviter un déclenchement audio en boucle.
+
+Règle de décision simple pour la classification:
+
+- si la confiance top-1 est supérieure ou égale au seuil BDD, l'oiseau est traité comme une espèce connue du périmètre,
+- si la confiance est comprise entre le seuil d'incertitude et le seuil BDD, le système retourne une incertitude,
+- si la confiance est inférieure au seuil d'incertitude, le système considère l'oiseau comme hors BDD.
+
+Les deux seuils sont à ajuster selon les essais; pour démarrer, une base pratique est `BDD >= 0.60` et `incertitude >= 0.30`.
 
 Bonnes pratiques temps réel:
 
