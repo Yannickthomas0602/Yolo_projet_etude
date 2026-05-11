@@ -115,3 +115,66 @@ Les points importants à conserver :
 ## 7. Prochaine étape possible
 
 La prochaine étape naturelle est l'entraînement du modèle sur [dataset_oiseaux](dataset_oiseaux), puis la validation des résultats.
+
+## 8. Lancement de l'entraînement
+
+Date de lancement : 11 mai 2026
+
+### 8.1 Paramètres choisis
+
+Pour la première exécution, l'entraînement classification est lancé avec :
+- modèle : `yolov5s-cls.pt`
+- dataset : `dataset_oiseaux`
+- taille d'image : `224`
+- batch size : `32`
+- epochs : `30`
+- device : `0` (RTX 4070 desktop)
+
+### 8.2 Commande lancée
+
+```powershell
+c:/Users/yanni/Desktop/Yolo/yolov5/.venv/Scripts/python.exe classify/train.py --model yolov5s-cls.pt --data C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux --epochs 30 --img 224 --batch 32 --device 0
+```
+
+### 8.3 Objectif de cette exécution
+
+L'objectif est de produire un premier modèle de classification pour les 4 classes du projet et de récupérer les métriques d'entraînement et de validation.
+
+### 8.4 Ajustement après erreur de lancement
+
+La première tentative d'exécution a échoué parce que le terminal a cherché `classify/train.py` depuis `C:\Users\yanni\Desktop\Yolo` au lieu du dossier [yolov5](.).
+
+Correction appliquée : lancement du script avec son chemin absolu pour éviter toute ambiguïté de répertoire de travail.
+
+### 8.5 État du lancement
+
+L'entraînement a bien été relancé avec le bon chemin absolu. Au moment de cette mise à jour, le terminal n'a pas encore affiché la première epoch, ce qui correspond souvent à la phase d'initialisation ou de chargement du modèle.
+
+### 8.6 Diagnostic GPU
+
+Le lancement en `--device 0` a échoué car le venv actuel utilise `torch 2.11.0+cpu`. La vérification Python a confirmé :
+- `torch.cuda.is_available() = False`
+- `torch.cuda.device_count() = 0`
+
+Conclusion : le projet ne voit pas la RTX 4070 tant que PyTorch CUDA n'est pas installé dans l'environnement virtuel.
+
+### 8.7 Correction GPU
+
+Le venv a été mis à jour avec les paquets CUDA suivants :
+- `torch 2.6.0+cu124`
+- `torchvision 0.21.0+cu124`
+- `torchaudio 2.6.0+cu124`
+
+La vérification Python confirme maintenant :
+- `torch.cuda.is_available() = True`
+- `torch.cuda.device_count() = 1`
+- GPU détecté : `NVIDIA GeForce RTX 4070 Laptop GPU`
+
+L'entraînement peut maintenant être relancé sur GPU.
+
+### 8.8 Relance de l'entraînement
+
+L'entraînement a été relancé après activation CUDA du venv, avec la même commande que précédemment. Le processus est maintenant en cours d'initialisation dans le terminal dédié.
+
+- Training completed on dataset_train_only; results saved to runs/train-cls/exp4
+- Preparing to push weights (runs/train-cls/exp4/weights) and journal to GitHub.
