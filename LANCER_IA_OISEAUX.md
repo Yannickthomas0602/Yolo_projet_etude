@@ -40,7 +40,7 @@ python classify/predict.py `
 
 Résultat attendu :
 - BDD si la confiance top-1 est suffisante,
-- INCERTITUDE si la confiance est intermédiaire,
+- INCERTITUDE si la confiance est intermédiaire, avec un seuil d'incertitude à 30 % par défaut,
 - HORS_BDD si la confiance est trop faible.
 
 Les résultats annotés sont enregistrés dans runs/predict-cls/exp*/.

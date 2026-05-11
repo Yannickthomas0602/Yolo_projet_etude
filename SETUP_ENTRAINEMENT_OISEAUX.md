@@ -428,7 +428,7 @@ python classify/predict.py `
     --uncertainty-thres 0.30
 ```
 
-Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`).
+Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`). Avec les seuils par défaut, `INCERTITUDE` correspond à une confiance comprise entre 30 % et 60 %.
 
 ### 6.3 Interprétation des résultats
 

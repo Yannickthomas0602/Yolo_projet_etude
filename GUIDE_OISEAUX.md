@@ -445,7 +445,7 @@ Règle de décision simple pour la classification:
 - si la confiance est comprise entre le seuil d'incertitude et le seuil BDD, le système retourne une incertitude,
 - si la confiance est inférieure au seuil d'incertitude, le système considère l'oiseau comme hors BDD.
 
-Les deux seuils sont à ajuster selon les essais; pour démarrer, une base pratique est `BDD >= 0.60` et `incertitude >= 0.30`.
+Les deux seuils sont à ajuster selon les essais; pour démarrer, une base pratique est `BDD >= 0.60` et `incertitude >= 0.30`, soit 60 % pour BDD et 30 % pour l'incertitude.
 
 Bonnes pratiques temps réel:
 

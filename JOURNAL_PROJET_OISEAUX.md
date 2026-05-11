@@ -145,6 +145,8 @@ Cette logique est pilotée par deux seuils :
 - seuil BDD : `0.60`
 - seuil incertitude : `0.30`
 
+En pourcentage, cela correspond à 60 % pour BDD et 30 % pour l'incertitude.
+
 ## 7. Validation de l'inférence
 
 Un test a été réalisé sur [pixabay_91570.jpg](dataset_oiseaux/train/cormoran/pixabay_91570.jpg).
