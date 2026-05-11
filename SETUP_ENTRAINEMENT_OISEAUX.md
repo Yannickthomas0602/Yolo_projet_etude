@@ -1,6 +1,6 @@
 # Guide Complet : Mise en Place de l'Entraînement YOLOv5 pour la Reconnaissance d'Oiseaux
 
-Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 6 espèces d'oiseaux à partir du projet YOLOv5.
+Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 6 espèces d'oiseaux à partir du projet YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 6 espèces complètes** : ce document décrit donc la cible finale et la manière de préparer le projet pour l'atteindre.
 
 ---
 
@@ -28,13 +28,15 @@ Créer un système complet de reconnaissance d'oiseaux qui :
 
 ### 1.2 Les 6 espèces cibles
 
-Le prototype doit gérer exactement ces 6 espèces :
+Le prototype vise à gérer exactement ces 6 espèces, mais **à ce stade nous ne les avons pas encore toutes dans le dataset** :
 - **Moineau** (*Passer domesticus*)
 - **Corbeau** (*Corvus*)
 - **Pigeon** (*Columba*)
 - **Héron** (*Ardea*)
 - **Merle** (*Turdus merula*)
 - **Aigrette** (*Egretta*)
+
+L'objectif du guide est donc de préparer le pipeline de façon progressive, en partant des espèces déjà disponibles puis en complétant les classes manquantes.
 
 ### 1.3 Approche recommandée : Classification
 

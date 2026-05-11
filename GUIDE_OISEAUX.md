@@ -1,6 +1,6 @@
 # Guide complet du projet de reconnaissance d'oiseaux
 
-Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5.
+Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. **Pour l'instant, le dataset ne contient pas encore les 6 espèces complètes** : ce guide décrit donc la cible finale et la façon de préparer le projet pour l'atteindre progressivement.
 
 Le projet final doit couvrir trois étapes:
 
@@ -42,7 +42,7 @@ Si ton dataset contient uniquement une image par espèce, sans annotations de bo
 
 Tu as déjà environ 650 images par espèce. C'est une bonne base pour démarrer, à condition de nettoyer le dataset avant l'entraînement.
 
-Dans cette version, limite le périmètre à 6 espèces exactement. Le but est d'obtenir un prototype fiable et simple à valider.
+Dans cette version, limite le périmètre à 6 espèces exactement, mais garde en tête qu'à ce stade le dataset n'est pas encore complet. Le but est d'obtenir un prototype fiable et simple à valider, puis de compléter les classes manquantes.
 
 ### 2.1 Trier et nettoyer les images
 
