@@ -190,3 +190,45 @@ Les documents Markdown ont été remis en cohérence avec l'état actuel du proj
 ## 10. Prochaine étape possible
 
 La prochaine étape naturelle est de brancher la décision métier sur la lecture audio et d'industrialiser le test final sur 1000 images variées.
+
+## 11. Analyse interactive ajoutée
+
+Un script dédié a été ajouté pour simplifier les analyses d'images sans retaper la commande YOLOv5 complète.
+
+### 11.1 Nouveau point d'entrée
+
+- [analyse_oiseaux.py](analyse_oiseaux.py)
+
+### 11.2 Ce qu'il fait
+
+- demande si l'utilisateur veut analyser une image ou un dossier complet,
+- lance automatiquement [classify/predict.py](classify/predict.py) avec les poids de référence,
+- récupère et affiche les probabilités de prédiction,
+- génère un graphique propre pour une image unique,
+- ouvre automatiquement le graphique après génération,
+- accepte aussi les dossiers organisés en sous-dossiers récursifs,
+- calcule la réussite globale d'un dossier,
+- affiche les classes les plus souvent confondues,
+- sauvegarde les graphiques et un résumé JSON dans `results/`,
+- installe automatiquement `matplotlib`, `tqdm` et `colorama` si nécessaire.
+
+Note : pour les analyses de dossier, le script évite d'enregistrer les images annotées individuellement afin d'accélérer le traitement (option `--nosave`) ; le produit principal est le fichier de synthèse JSON et les graphiques enregistrés dans `results/`.
+
+### 11.3 Résultat attendu
+
+Le script fournit désormais une interface console interactive plus rapide pour tester le modèle sur une image ou sur un dataset entier, y compris quand le dataset contient des sous-dossiers par classe, tout en gardant les sorties exploitables pour le suivi projet.
+
+## 12. Mise à jour des règles de décision (mai 2026)
+
+Le projet a été aligné sur une règle de décision plus simple dans [analyse_oiseaux.py](analyse_oiseaux.py) :
+
+- la décision `BDD` / `INCERTITUDE` / `HORS_BDD` se fait uniquement sur le score top-1,
+- `BDD` si top-1 >= 0.60,
+- `INCERTITUDE` si 0.50 <= top-1 < 0.60,
+- `HORS_BDD` si top-1 < 0.50.
+
+Cette mise à jour garantit qu'un exemple comme `cormoran = 43 %` est bien classé `HORS_BDD`.
+
+Le modèle de référence utilisé pour les analyses est désormais :
+
+- `runs/train-cls/exp_retrain/weights/best.pt`.

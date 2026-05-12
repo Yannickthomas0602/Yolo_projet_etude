@@ -420,15 +420,15 @@ Testez sur des images non vues pendant l'entraînement :
 
 ```powershell
 python classify/predict.py `
-    --weights runs/train-cls/exp4/weights/best.pt `
+    --weights runs/train-cls/exp_retrain/weights/best.pt `
     --source C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux\test\cormoran\pixabay_91570.jpg `
     --img 224 `
     --device 0 `
     --bdd-thres 0.60 `
-    --uncertainty-thres 0.30
+    --uncertainty-thres 0.50
 ```
 
-Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`). Avec les seuils par défaut, `INCERTITUDE` correspond à une confiance comprise entre 30 % et 60 %.
+Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`). Avec les seuils projet actuels, `INCERTITUDE` correspond à une confiance comprise entre 50 % et 60 %.
 
 ### 6.3 Interprétation des résultats
 
@@ -459,12 +459,12 @@ Pour le test de production final :
 
 ```powershell
 python classify/predict.py `
-    --weights runs/train-cls/exp4/weights/best.pt `
+        --weights runs/train-cls/exp_retrain/weights/best.pt `
   --source C:\chemin\vers\test_final_1000_images\ `
     --img 224 `
     --device 0 `
     --bdd-thres 0.60 `
-    --uncertainty-thres 0.30
+        --uncertainty-thres 0.50
 ```
 
 3. Mesurez :

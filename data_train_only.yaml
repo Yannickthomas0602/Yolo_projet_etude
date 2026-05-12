@@ -1,4 +1,4 @@
-train: dataset_oiseaux/train
-val: dataset_oiseaux/train
+train: C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux\train
+val: C:\Users\yanni\Desktop\Yolo\yolov5\dataset_oiseaux\train
 nc: 4
 names: ['balbuzard','heron','cormoran','mouette_goeland']
