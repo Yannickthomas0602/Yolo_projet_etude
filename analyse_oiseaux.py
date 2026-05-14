@@ -15,10 +15,11 @@ import re                   # Pour les expressions régulières
 import subprocess           # Pour exécuter des processus externes (YOLOv5)
 import sys                  # Pour l'accès aux arguments et l'interpréteur Python
 import unicodedata          # Pour normaliser les caractères Unicode
+import random               # Pour sélectionner aléatoirement un fichier audio
 from collections import Counter  # Pour compter les occurrences
 from dataclasses import dataclass  # Pour créer des classes structurées
 from pathlib import Path    # Pour gérer les chemins de fichier
-from typing import Dict, List  # Pour les annotations de type
+from typing import Dict, List, Optional  # Pour les annotations de type
 import json                 # Pour manipuler du JSON (sauvegarde des résultats)
 import argparse            # Pour parser les arguments (non utilisé actuellement)
 import tempfile            # Pour créer des répertoires temporaires
@@ -39,8 +40,16 @@ PREDICT_SCRIPT = ROOT / "classify" / "predict.py"
 # Répertoire où seront sauvegardés tous les résultats (graphiques, JSON, etc.)
 RESULTS_DIR = ROOT / "results"
 
+# Répertoire contenant les fichiers audio des cris d'oiseaux
+AUDIO_DIR = ROOT / "cri_predateur_ou_detresse"
+
 # Extensions de fichiers image supportées
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+# Fichier audio d'alerte (doute) - joué en cas d'INCERTITUDE
+AUDIO_ALERT = AUDIO_DIR / "canon.mp3"
+
+# Extensions audio supportées
+AUDIO_EXTENSIONS = {".mp3"}
 
 # ============================================================================
 # SEUILS DE CONFIANCE - Pour classifier les prédictions
@@ -268,6 +277,123 @@ def build_run_name(source: Path) -> str:
     # Génère un hash SHA1 court du chemin absolu pour l'unicité
     digest = hashlib.sha1(str(source.resolve()).encode("utf-8")).hexdigest()[:10]
     return f"{base_name}_{digest}"
+
+
+# ============================================================================
+# GESTION AUDIO - Recherche et lecture des fichiers audio des oiseaux
+# ============================================================================
+
+# Mappage des classes du modèle (normalisées) vers les dossiers audio
+CLASS_TO_AUDIO_FOLDER = {
+    "balbuzard": "Balbuzard",
+    "heron": "Heron",
+    "cormoran": "Cormoran",
+    "mouette_goeland": "Goeland-mouette",
+}
+
+
+def find_audio_file(bird_class: str) -> Optional[Path]:
+    """
+    Recherche et retourne un fichier audio aléatoire correspondant à un oiseau détecté.
+    
+    Args:
+        bird_class: Nom de la classe détectée (doit être normalisé, ex: 'balbuzard')
+    
+    Returns:
+        Chemin vers un fichier MP3 sélectionné aléatoirement, ou None si aucun fichier trouvé
+    """
+    # Normalise le nom de classe pour la comparaison
+    normalized_class = normalize_label(bird_class)
+    
+    # Récupère le dossier audio correspondant
+    audio_folder_name = CLASS_TO_AUDIO_FOLDER.get(normalized_class)
+    if audio_folder_name is None:
+        print(console_text(f"[AUDIO] Classe '{bird_class}' non mappée vers un dossier audio.", Fore.YELLOW, bright=True))
+        return None
+    
+    # Construit le chemin du dossier audio
+    audio_folder = AUDIO_DIR / audio_folder_name
+    
+    # Vérifie que le dossier existe
+    if not audio_folder.exists() or not audio_folder.is_dir():
+        print(console_text(f"[AUDIO] Dossier audio introuvable pour '{bird_class}': {audio_folder}", Fore.YELLOW, bright=True))
+        return None
+    
+    # Cherche tous les fichiers MP3 du dossier
+    audio_files = [
+        f for f in audio_folder.iterdir()
+        if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
+    ]
+    
+    if not audio_files:
+        print(console_text(f"[AUDIO] Aucun fichier MP3 trouvé pour '{bird_class}' dans {audio_folder}", Fore.YELLOW, bright=True))
+        return None
+    
+    # Sélectionne aléatoirement un fichier
+    selected_audio = random.choice(audio_files)
+    print(console_text(f"[AUDIO] Sélectionné pour '{bird_class}': {selected_audio.name}", Fore.CYAN))
+    
+    return selected_audio
+
+
+def play_audio(audio_path: Optional[Path]) -> bool:
+    """
+    Joue un fichier audio en ouvrant le lecteur système par défaut (Windows).
+    La fonction est bloquante seulement si le lecteur reste ouvert.
+    
+    Args:
+        audio_path: Chemin vers le fichier MP3 à jouer
+    
+    Returns:
+        True si la lecture a réussi, False sinon
+    """
+    if audio_path is None:
+        return False
+    
+    if not audio_path.exists():
+        print(console_text(f"[AUDIO] Fichier audio introuvable: {audio_path}", Fore.RED, bright=True))
+        return False
+    
+    try:
+        # Sous Windows, os.startfile() ouvre le fichier avec l'application par défaut
+        if sys.platform == "win32":
+            os.startfile(str(audio_path))
+            print(console_text(f"[AUDIO] Lecture lancée: {audio_path.name}", Fore.GREEN, bright=True))
+            return True
+        # Sous Linux, utilise 'xdg-open'
+        elif sys.platform == "linux":
+            subprocess.Popen(["xdg-open", str(audio_path)])
+            print(console_text(f"[AUDIO] Lecture lancée: {audio_path.name}", Fore.GREEN, bright=True))
+            return True
+        # Sous macOS, utilise 'open'
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(audio_path)])
+            print(console_text(f"[AUDIO] Lecture lancée: {audio_path.name}", Fore.GREEN, bright=True))
+            return True
+        else:
+            print(console_text(f"[AUDIO] Plateforme non supportée: {sys.platform}", Fore.YELLOW, bright=True))
+            return False
+    except Exception as e:
+        print(console_text(f"[AUDIO] Erreur lors de la lecture: {e}", Fore.RED, bright=True))
+        return False
+
+
+def play_bird_audio(bird_class: str) -> bool:
+    """
+    Cherche et joue le son d'un oiseau détecté.
+    Gère l'ensemble du processus: recherche du fichier, sélection aléatoire et lecture.
+    
+    Args:
+        bird_class: Nom de la classe de l'oiseau détecté
+    
+    Returns:
+        True si la lecture a réussi, False sinon
+    """
+    print(console_text(f"[AUDIO] Recherche d'un son pour '{bird_class}'...", Fore.CYAN))
+    audio_file = find_audio_file(bird_class)
+    if audio_file is None:
+        return False
+    return play_audio(audio_file)
 
 
 # ============================================================================
@@ -642,7 +768,12 @@ def print_folder_summary(total: int, correct: int, failed: int, confusion_counts
 
 def analyze_single_image(image_path: Path) -> None:
     """
-    Analyse une seule image: lance la prédiction, affiche les résultats et génère un graphique.
+    Analyse une seule image: lance la prédiction, affiche les résultats, joue le son approprié et génère un graphique.
+    
+    Logique de lecture audio :
+    - BDD : joue le son de l'oiseau détecté
+    - INCERTITUDE : joue le signal d'alerte (canon.mp3)
+    - HORS_BDD : pas de son
     
     Args:
         image_path: Chemin vers l'image à analyser
@@ -660,7 +791,21 @@ def analyze_single_image(image_path: Path) -> None:
     # Affiche les résultats en console
     print_single_image_result(record)
     
+    # Lance la lecture audio appropriée selon le statut
+    print()  # Ligne vide pour lisibilité
+    if record.status == "BDD":
+        # BDD : joue le son de l'oiseau
+        play_bird_audio(record.top1_class)
+    elif record.status == "INCERTITUDE":
+        # INCERTITUDE : joue le signal d'alerte (canon)
+        print(console_text("[AUDIO] Statut INCERTITUDE détecté - lecture du signal d'alerte...", Fore.YELLOW, bright=True))
+        play_audio(AUDIO_ALERT)
+    else:  # HORS_BDD
+        # HORS_BDD : pas de son, message informatif
+        print(console_text("[AUDIO] Impossible de jouer un son: oiseau non reconnu (AUTRE).", Fore.YELLOW))
+    
     # Génère un graphique de confiance
+    print()  # Ligne vide pour lisibilité
     chart_path = plot_single_image(record, RESULTS_DIR)
     print(console_text(f"Graphique enregistré dans: {chart_path}", Fore.GREEN, bright=True))
     

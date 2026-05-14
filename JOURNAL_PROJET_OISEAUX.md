@@ -145,6 +145,197 @@ Cette logique est pilotée par deux seuils :
 - seuil BDD : `0.60`
 - seuil incertitude : `0.30`
 
+## 7. Lecture audio des cris d'oiseaux (mai 2026)
+
+Une nouvelle fonctionnalité a été ajoutée pour jouer automatiquement le son d'un oiseau après sa détection lors d'une analyse d'image unique.
+
+### 7.1 Objectif
+
+Après la détection et la classification d'un oiseau sur une image, le script [analyse_oiseaux.py](analyse_oiseaux.py) lance automatiquement la lecture d'un fichier audio correspondant à l'espèce détectée.
+
+### 7.2 Fichiers modifiés
+
+- [analyse_oiseaux.py](analyse_oiseaux.py) : ajout des fonctions audio et intégration dans `analyze_single_image()`
+
+### 7.3 Nouvelles fonctions ajoutées
+
+#### `find_audio_file(bird_class: str) -> Optional[Path]`
+
+Recherche un fichier audio correspondant à l'oiseau détecté :
+- Mappe la classe normalisée du modèle (`balbuzard`, `heron`, `cormoran`, `mouette_goeland`) vers le dossier audio correspondant dans `cri_predateur_ou_detresse/`
+- Cherche tous les fichiers MP3 du dossier
+- Sélectionne aléatoirement un fichier MP3 si plusieurs existent
+- Retourne `None` si aucun fichier ne correspond (cas des classes inconnues ou mal mappées)
+
+Mappage classe → dossier audio :
+- `balbuzard` → `Balbuzard/`
+- `heron` → `Heron/`
+- `cormoran` → `Cormoran/`
+- `mouette_goeland` → `Goeland-mouette/`
+
+#### `play_audio(audio_path: Optional[Path]) -> bool`
+
+Lance la lecture d'un fichier audio MP3 en ouvrant le lecteur système par défaut :
+- Sous **Windows** : utilise `os.startfile()` pour ouvrir le fichier avec l'application par défaut
+- Sous **Linux** : utilise `xdg-open` via `subprocess`
+- Sous **macOS** : utilise `open` via `subprocess`
+- Retourne `True` si la lecture a réussi, `False` sinon
+- Gère les erreurs d'exécution et les cas où le fichier n'existe pas
+
+#### `play_bird_audio(bird_class: str) -> bool`
+
+Fonction façade qui orchestre l'ensemble du processus de lecture audio :
+1. Recherche un fichier audio pour l'oiseau
+2. Sélectionne un son aléatoirement
+3. Lance la lecture automatique
+4. Retourne le statut de la lecture
+
+### 7.4 Intégration dans `analyze_single_image()`
+
+La fonction a été modifiée pour :
+1. Lancer la prédiction YOLOv5 comme avant
+2. Afficher les résultats en console
+3. **[NOUVEAU]** Lancer automatiquement la lecture audio si l'oiseau est reconnu (`BDD` ou `INCERTITUDE`)
+4. Afficher un message d'information si l'oiseau n'est pas reconnu (`HORS_BDD`)
+5. Générer et afficher le graphique de confiance
+
+Ordre d'exécution pour une image unique :
+```
+Image analysée → YOLOv5 prédiction → Affichage console → Lecture audio (si reconnue) → Graphique
+```
+
+### 7.5 Gestion des cas d'erreur
+
+Le système gère gracieusement les situations suivantes :
+
+- **Oiseau non mappé** : message de log `[AUDIO]` en jaune expliquant qu'aucun dossier audio n'existe pour cette classe
+- **Dossier audio manquant** : avertissement `[AUDIO]` indiquant le chemin introuvable
+- **Aucun fichier MP3 trouvé** : log `[AUDIO]` expliquant qu'aucun MP3 n'existe pour cet oiseau
+- **Fichier audio corrompu ou inaccessible** : l'erreur système est affichée en détail, la lecture échoue silencieusement
+- **Classe `HORS_BDD`** : pas de lecture audio (l'oiseau n'est pas reconnu), message informatif affiché
+- **Plateforme non supportée** : message `[AUDIO]` jaune indiquant que la plateforme du système n'est pas supportée
+
+### 7.6 Logs et traçabilité
+
+Chaque opération audio est loggée explicitement en console avec codes couleur :
+
+- **Cyan** : messages informatifs (`[AUDIO] Recherche d'un son...`, `[AUDIO] Sélectionné...`)
+- **Vert** : succès (`[AUDIO] Lecture lancée...`)
+- **Jaune** : avertissements et cas spéciaux (`[AUDIO] Classe non mappée...`, `[AUDIO] Aucun fichier MP3...`)
+- **Rouge** : erreurs (`[AUDIO] Fichier introuvable...`, `[AUDIO] Erreur lors de la lecture...`)
+
+Exemple de log complet :
+```
+[AUDIO] Recherche d'un son pour 'balbuzard'...
+[AUDIO] Sélectionné pour 'balbuzard': balbuzard_preda_1.mp3
+[AUDIO] Lecture lancée: balbuzard_preda_1.mp3
+```
+
+### 7.7 Comportement en mode dossier (batch)
+
+La fonction `analyze_folder()` **ne déclenche pas de lecture audio** pour éviter :
+- Les interruptions répétées lors du traitement batch
+- Les consommations de ressources système non nécessaires
+- Les bruits gênants durant une analyse longue sur de nombreuses images
+
+La lecture audio est réservée à l'analyse interactive d'une **image unique**.
+
+### 7.8 Dépendances et compatibilité
+
+- Aucune dépendance supplémentaire requise
+- Utilise uniquement `os`, `subprocess`, `sys` et `random` (modules standards Python)
+- Compatible **Windows 10+**, **Linux** (avec gestionnaire d'applications configuré), **macOS 10.12+**
+- Les fichiers audio dans `cri_predateur_ou_detresse/` doivent être en format **MP3** (extension `.mp3`)
+
+### 7.9 Limites et notes futures
+
+1. **Lecture asynchrone** : la fonction est non-bloquante sur Windows (le lecteur s'ouvre en arrière-plan) mais peut bloquer sur d'autres OS selon le lecteur par défaut configuré
+2. **Bruit de fond** : dans un environnement batch, il est possible que plusieurs lecteurs s'ouvrent simultanément ; ce cas ne se produit que si `analyze_folder()` était modifiée pour lancer la lecture audio
+3. **Qualité audio** : aucune normalisation ou ajustement de volume n'est appliqué ; le son est joué au volume par défaut du système
+4. **Sélection aléatoire** : la sélection des fichiers MP3 ne garantit pas une distribution uniforme sur plusieurs analyses ; pour un test statistique rigoureux, une semence (`seed`) ou un log des fichiers joués peut être ajouté
+5. **Extension `.MP3`** : les fichiers en majuscules `.MP3` ne sont actuellement pas reconnus (case-sensitive sur Linux) ; amélioration future possible
+
+### 7.10 Exemple d'utilisation
+
+```bash
+# Lancer l'analyse interactive
+python analyse_oiseaux.py
+
+# Choisir l'option 1 (analyser une seule image)
+# Votre choix (1/2) : 1
+
+# Entrer le chemin vers l'image
+# Chemin complet de l'image : C:\path\to\heron.jpg
+
+# Résultat attendu :
+# - Affichage de la prédiction en console
+# - Ouverture du lecteur MP3 système avec le cri d'un héron
+# - Génération du graphique de confiance
+# - Affichage du chemin vers le graphique enregistré
+```
+
+### 7.11 Tests réalisés
+
+
+### 7.12 Signal d'alerte pour l'INCERTITUDE (canonmp3)
+
+Une amélioration a été apportée pour différencier la lecture audio selon le statut de confiance :
+
+#### Logique de lecture audio raffinée
+
+La fonction `analyze_single_image()` a été modifiée pour jouer des sons différents selon le statut :
+
+- **BDD (confiance >= 60%)** : joue le cri authentique de l'oiseau détecté
+	- Exemple : détection d'un héron → lecture d'un cri de héron
+	- Fichier sélectionné aléatoirement parmi les cris disponibles pour cette espèce
+
+- **INCERTITUDE (confiance 50-60%)** : joue un signal d'alerte générique (`canon.mp3`)
+	- Signal sonore pour indiquer que le modèle hésite
+	- Permet d'alerter l'utilisateur que le résultat est incertain
+	- Localisation : `cri_predateur_ou_detresse/canon.mp3`
+
+- **HORS_BDD (confiance < 50%)** : pas de son, uniquement un message informatif
+	- Oiseau non reconnu par le modèle
+	- Aucune lecture audio pour ne pas générer de fausse alerte
+
+#### Nouvelle constante
+
+```python
+# Fichier audio d'alerte (doute) - joué en cas d'INCERTITUDE
+AUDIO_ALERT = AUDIO_DIR / "canon.mp3"
+```
+
+#### Exemple de flux complet
+
+```
+Analyse d'une image de héron avec confiance 55% (INCERTITUDE)
+	↓
+YOLOv5 prédiction : "heron", score 55%
+	↓
+Affichage console : classe = "heron", confiance = 55%, statut = "INCERTITUDE"
+	↓
+[AUDIO] Statut INCERTITUDE détecté - lecture du signal d'alerte...
+	↓
+Ouverture du lecteur système avec canon.mp3
+	↓
+Génération du graphique de confiance
+```
+
+#### Avantages de cette approche
+
+1. **Feedback clair** : L'utilisateur sait immédiatement si le résultat est certain ou douteux
+2. **Pas de confusion** : Un cri d'oiseau faux n'est jamais joué (cas d'INCERTITUDE = son d'alerte, cas d'HORS_BDD = silence)
+3. **Modulable** : Le signal d'alerte peut être changé facilement (remplacer `canon.mp3` par un autre fichier)
+4. **Non-bloquant** : La lecture audio n'interrompt pas le processus d'analyse
+
+#### Tests validés pour la version avec signal d'alerte
+
+- ✓ Statut BDD : son de l'oiseau détecté
+- ✓ Statut INCERTITUDE : canon.mp3 joué avec message explicite
+- ✓ Statut HORS_BDD : pas de son, message d'information
+- ✓ Logging détaillé : chaque action de lecture est loggée en jaune/cyan/vert/rouge
+- ✓ Aucun impact sur le mode batch
+
 En pourcentage, cela correspond à 60 % pour BDD et 30 % pour l'incertitude.
 
 ## 7. Validation de l'inférence
