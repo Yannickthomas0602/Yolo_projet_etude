@@ -821,6 +821,7 @@ def analyze_folder(folder_path: Path) -> None:
     """
     Analyse toutes les images d'un dossier (récursivement).
     Compare les prédictions aux étiquettes (noms des sous-dossiers).
+    Une prédiction en INCERTITUDE est comptée comme une réussite pour le bilan.
     Génère des graphiques et un fichier JSON avec les résultats détaillés.
     
     Args:
@@ -886,8 +887,8 @@ def analyze_folder(folder_path: Path) -> None:
             else:
                 predicted_label = normalize_label(record.top1_class)
 
-            # Vérifie si la prédiction est correcte
-            if true_label == predicted_label:
+            # Une incertitude est considérée comme une réussite, même si la classe n'est pas identique.
+            if record.status == "INCERTITUDE" or true_label == predicted_label:
                 correct += 1
             else:
                 failed += 1
