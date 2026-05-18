@@ -174,36 +174,36 @@ Voici trois schémas Mermaid pour visualiser l'architecture, le flux d'envoi Azu
 
 ```mermaid
 flowchart LR
-  Camera[Caméra / Image] -->|capture| Inference[Inference (YOLOv5)]
-  Inference --> Post[Post‑traitement]
-  Post --> Save[Enregistrement trié (`enregistrements/`)]
-  Post --> Audio[Lecture audio (optionnelle)]
-  Post --> Azure[Upload Azure (optionnel)]
-  Post --> Vector[Recherche vectorielle (FAISS)]
-  Vector -->|voisins| Post
-  Save --> Archive[Archivage / Historique]
+  Cam(Camera / Image) --> Inference["Inference (YOLOv5)"]
+  Inference --> Post["Post-traitement"]
+  Post --> Save["Enregistrement trié (enregistrements/)"]
+  Post --> Audio["Lecture audio (optionnelle)"]
+  Post --> Azure["Upload Azure (optionnel)"]
+  Post --> Vector["Recherche vectorielle (FAISS)"]
+  Vector --> Post
+  Save --> Archive["Archivage / Historique"]
   classDef optional fill:#f9f,stroke:#333,stroke-width:1px;
-  Audio,Azure,Vector class optional
+  class Audio,Azure,Vector optional
 ```
 
 ### Flux d'envoi vers Azure (Blob + IoT Hub)
 
 ```mermaid
 sequenceDiagram
-  participant Cam as Caméra
-  participant App as Application locale
-  participant Blob as Azure Blob Storage
-  participant IoT as Azure IoT Hub
+  participant Cam as Camera
+  participant App as Application_Local
+  participant Blob as Azure_Blob
+  participant IoT as Azure_IoT
 
   Cam->>App: capture image
-  App->>App: inférence + décision (BDD/INCERTITUDE/HORS_BDD)
-  alt doit envoyer
-    App->>Blob: upload du blob (image)
-    Blob-->>App: confirmation upload
-    App->>IoT: envoi message télémétrie (métadonnées)
+  App->>App: inference and decision
+  alt doit_envoyer
+    App->>Blob: upload image
+    Blob-->>App: confirmation
+    App->>IoT: send telemetry
     IoT-->>App: ack
-  else pas d'envoi
-    App-->>Cam: rien à faire
+  else pas_envoyer
+    App-->>Cam: none
   end
 ```
 
@@ -211,12 +211,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  Img[Image] --> CLIP[CLIP: calcul embeddings]
-  CLIP --> Normalize[Normalisation (L2)]
-  Normalize --> FAISS[FAISS: interroger index]
-  FAISS --> Neighbors[Liste de voisins les plus proches]
-  Neighbors --> Decision[Combinaison avec score du classifieur]
-  Decision -->|si utile| Post
+  Img[Image] --> CLIP["CLIP: calcul embeddings"]
+  CLIP --> Normalize["Normalisation (L2)"]
+  Normalize --> FAISS["FAISS: interroger index"]
+  FAISS --> Neighbors["Voisins proches"]
+  Neighbors --> Decision["Combinaison avec score du classifieur"]
+  Decision --> Post
 ```
 
 Tu peux prévisualiser ces diagrammes dans VS Code (extension Mermaid) ou sur GitHub si le rendu Mermaid est activé.
