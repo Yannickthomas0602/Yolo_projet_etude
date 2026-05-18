@@ -66,6 +66,27 @@ Note : en mode dossier, `analyse_oiseaux.py` n'enregistre pas les images annoté
 
 Si tu veux utiliser la camera de l'ordinateur et comprendre où sont rangées les images selon leur statut, lis aussi [MODE_CAMERA_OISEAUX.md](MODE_CAMERA_OISEAUX.md).
 
+## 3.2 Synchroniser automatiquement sur Azure (optionnel)
+
+Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque détection vers Azure Blob Storage et Azure IoT Hub si les variables d'environnement suivantes sont définies. Le script charge automatiquement un fichier local [`.env`](.env) s'il est présent à la racine du projet.
+
+- `AZURE_STORAGE_CONN`
+- `AZURE_IOT_HUB_CONN`
+- `AZURE_BLOB_CONTAINER` (défaut : `archives-photos`)
+- `AZURE_APPAREIL` (défaut : `Bassin_01`)
+
+Exemple PowerShell :
+
+```powershell
+$env:AZURE_STORAGE_CONN = "DefaultEndpointsProtocol=https;..."
+$env:AZURE_IOT_HUB_CONN = "HostName=...;DeviceId=...;SharedAccessKey=..."
+$env:AZURE_BLOB_CONTAINER = "archives-photos"
+$env:AZURE_APPAREIL = "Bassin_01"
+python analyse_oiseaux.py
+```
+
+Le téléversement utilise l'image déjà renommée localement, puis envoie un message IoT standardisé avec la classe détectée, le score et le statut métier.
+
 ## 3.1 Ajouter une classe "autre" et ré-entraîner (optionnel)
 
 Si tu veux que le modèle apprenne explicitement une classe `autre` pour représenter les espèces hors BDD, suis ces étapes :

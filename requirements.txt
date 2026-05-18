@@ -42,6 +42,8 @@ seaborn>=0.11.0
 packaging  # Migration of deprecated pkg_resources packages
 setuptools>=70.0.0 # Snyk vulnerability fix
 # tritonclient[all]~=2.24.0
+# azure-storage-blob
+# azure-iot-device
 
 # Extras ----------------------------------------------------------------------
 # ipython  # interactive notebook

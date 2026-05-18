@@ -65,6 +65,47 @@ VECTOR_DIR = ROOT / "vectors"
 # Seuil de similarité (cosine approximé par inner product sur vecteurs normalisés)
 VECTOR_SIMILARITY_THRESH = 0.30
 
+# Fichier de configuration local optionnel pour les secrets Azure.
+LOCAL_ENV_FILE = ROOT / ".env"
+
+
+def load_local_env_file(env_file: Path = LOCAL_ENV_FILE) -> None:
+    """
+    Charge un fichier .env local simple si présent.
+
+    Le format attendu est KEY=VALUE, avec commentaires # et valeurs entre guillemets acceptées.
+    Les variables déjà définies dans l'environnement ne sont pas écrasées.
+    """
+    if not env_file.exists() or not env_file.is_file():
+        return
+
+    try:
+        for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception as exc:
+        print(f"[Azure] Impossible de lire {env_file.name}: {exc}")
+
+
+load_local_env_file()
+
+# Synchronisation Azure optionnelle (activée seulement si les variables d'environnement sont renseignées)
+AZURE_UPLOAD_ENABLED = os.getenv("AZURE_UPLOAD_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
+AZURE_STORAGE_CONN = os.getenv("AZURE_STORAGE_CONN", "").strip()
+AZURE_IOT_HUB_CONN = os.getenv("AZURE_IOT_HUB_CONN", "").strip()
+AZURE_BLOB_CONTAINER = os.getenv("AZURE_BLOB_CONTAINER", "archives-photos").strip() or "archives-photos"
+AZURE_APPAREIL = os.getenv("AZURE_APPAREIL", "Bassin_01").strip() or "Bassin_01"
+
 # ============================================================================
 # SEUILS DE CONFIANCE - Pour classifier les prédictions
 # ============================================================================
@@ -358,6 +399,84 @@ def save_analyzed_image(source_path: Path, record: PredictionRecord) -> Optional
 
     print(console_text(f"[ENREGISTREMENT] Image sauvegardée dans: {target_path}", Fore.CYAN, bright=True))
     return target_path
+
+
+def transferer_donnees_azure(chemin_image_locale: Path, espece_oiseau: str, score_confiance: float, statut: str) -> bool:
+    """
+    Envoie une image analysée sur Azure Blob Storage et l'alerte associée sur Azure IoT Hub.
+
+    L'envoi est volontairement optionnel: il ne s'active que si les variables d'environnement
+    Azure sont renseignées.
+
+    Args:
+        chemin_image_locale: Chemin vers l'image à téléverser
+        espece_oiseau: Classe prédite par le modèle
+        score_confiance: Score top-1
+        statut: Statut métier associé à la prédiction
+
+    Returns:
+        True si l'envoi a réussi, False sinon
+    """
+    if not AZURE_UPLOAD_ENABLED:
+        return False
+
+    if not AZURE_STORAGE_CONN or not AZURE_IOT_HUB_CONN:
+        print(console_text("[Azure] Connexions manquantes: envoi désactivé (variables d'environnement non renseignées).", Fore.YELLOW, bright=True))
+        return False
+
+    if not chemin_image_locale.exists() or not chemin_image_locale.is_file():
+        print(console_text(f"[Azure] Image introuvable pour l'envoi: {chemin_image_locale}", Fore.YELLOW, bright=True))
+        return False
+
+    try:
+        azure_blob_module = import_module("azure.storage.blob")
+        azure_iot_module = import_module("azure.iot.device")
+        BlobServiceClient = azure_blob_module.BlobServiceClient
+        IoTHubDeviceClient = azure_iot_module.IoTHubDeviceClient
+    except Exception as exc:
+        print(console_text(f"[Azure] SDK manquant ou import impossible: {exc}", Fore.YELLOW, bright=True))
+        return False
+
+    timestamp_actuel = int(time.time())
+    extension = chemin_image_locale.suffix.lower() or ".jpg"
+    espece_saine = normalize_label(espece_oiseau) or "oiseau"
+    nom_fichier_azure = f"detection_{espece_saine}_{timestamp_actuel}{extension}"
+
+    try:
+        print(console_text(f"[Azure] Téléversement de {nom_fichier_azure} vers le container '{AZURE_BLOB_CONTAINER}'...", Fore.CYAN, bright=True))
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONN)
+        blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=nom_fichier_azure)
+
+        with open(chemin_image_locale, "rb") as data:
+            blob_client.upload_blob(data, overwrite=True)
+
+        payload = {
+            "appareil": AZURE_APPAREIL,
+            "oiseau": espece_oiseau,
+            "statut": statut,
+            "confiance": round(float(score_confiance), 2),
+            "action": "Effarouchement sonore activé",
+            "image_blob": nom_fichier_azure,
+            "timestamp": timestamp_actuel,
+        }
+
+        json_message = json.dumps(payload, ensure_ascii=False)
+        print(console_text(f"[Azure] Envoi IoT Hub: {json_message}", Fore.CYAN, bright=True))
+
+        iot_client = IoTHubDeviceClient.create_from_connection_string(AZURE_IOT_HUB_CONN)
+        try:
+            iot_client.send_message(json_message)
+        finally:
+            try:
+                iot_client.shutdown()
+            except Exception:
+                pass
+
+        print(console_text("[Azure] Synchronisation terminée avec succès.", Fore.GREEN, bright=True))
+        return True
+    except Exception as exc:
+        print(console_text(f"[Azure Error] Échec de l'envoi automatique : {exc}", Fore.RED, bright=True))
+        return False
 
 
 def open_camera(camera_index: int = 0) -> cv2.VideoCapture:
@@ -925,7 +1044,7 @@ def analyze_single_image(image_path: Path) -> None:
     print_single_image_result(record)
 
     # Sauvegarde l'image dans le dossier correspondant au statut détecté
-    save_analyzed_image(image_path, record)
+    saved_image_path = save_analyzed_image(image_path, record)
     
     # Lance la lecture audio appropriée selon le statut
     print()  # Ligne vide pour lisibilité
@@ -939,6 +1058,10 @@ def analyze_single_image(image_path: Path) -> None:
     else:  # HORS_BDD
         # HORS_BDD : pas de son, message informatif
         print(console_text("[AUDIO] Impossible de jouer un son: oiseau non reconnu (AUTRE).", Fore.YELLOW))
+
+    # Envoi vers Azure si configuré (image locale renommée + payload IoT)
+    if saved_image_path is not None:
+        transferer_donnees_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
     
     # Génère un graphique de confiance
     print()  # Ligne vide pour lisibilité
@@ -1014,7 +1137,7 @@ def analyze_folder(folder_path: Path) -> None:
             status_counts[record.status] += 1
 
             # Sauvegarde l'image dans le dossier correspondant au statut détecté
-            save_analyzed_image(image_path, record)
+            saved_image_path = save_analyzed_image(image_path, record)
             
             # Extrait l'étiquette vraie du nom du dossier parent
             true_label = normalize_label(image_path.parent.name)
@@ -1098,7 +1221,7 @@ def analyze_camera_stream(camera_index: int = 0) -> None:
             ensure_dependency("faiss", "faiss-cpu")
             ensure_dependency("Pillow")
             ensure_dependency("torch")
-            import clip
+            clip = import_module("clip")
             import torch
             import numpy as np
             from PIL import Image
