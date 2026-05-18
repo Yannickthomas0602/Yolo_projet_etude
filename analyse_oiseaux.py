@@ -12,10 +12,12 @@ import hashlib              # Pour générer des identifiants uniques (SHA1)
 import importlib.util       # Pour vérifier la disponibilité des modules
 import os                   # Pour les opérations système
 import re                   # Pour les expressions régulières
+import shutil               # Pour copier les images analysées
 import subprocess           # Pour exécuter des processus externes (YOLOv5)
 import sys                  # Pour l'accès aux arguments et l'interpréteur Python
 import unicodedata          # Pour normaliser les caractères Unicode
 import random               # Pour sélectionner aléatoirement un fichier audio
+from datetime import datetime  # Pour horodater les enregistrements
 from collections import Counter  # Pour compter les occurrences
 from dataclasses import dataclass  # Pour créer des classes structurées
 from pathlib import Path    # Pour gérer les chemins de fichier
@@ -23,6 +25,10 @@ from typing import Dict, List, Optional  # Pour les annotations de type
 import json                 # Pour manipuler du JSON (sauvegarde des résultats)
 import argparse            # Pour parser les arguments (non utilisé actuellement)
 import tempfile            # Pour créer des répertoires temporaires
+import threading
+import time
+import math
+from importlib import import_module
 
 # ============================================================================
 # CONSTANTES - Chemins et paramètres de configuration
@@ -40,6 +46,9 @@ PREDICT_SCRIPT = ROOT / "classify" / "predict.py"
 # Répertoire où seront sauvegardés tous les résultats (graphiques, JSON, etc.)
 RESULTS_DIR = ROOT / "results"
 
+# Répertoire où seront copiées les images analysées par statut
+ENREGISTREMENTS_DIR = ROOT / "enregistrements"
+
 # Répertoire contenant les fichiers audio des cris d'oiseaux
 AUDIO_DIR = ROOT / "cri_predateur_ou_detresse"
 
@@ -50,6 +59,11 @@ AUDIO_ALERT = AUDIO_DIR / "canon.mp3"
 
 # Extensions audio supportées
 AUDIO_EXTENSIONS = {".mp3"}
+
+# Répertoire pour l'index vectoriel (FAISS + mapping)
+VECTOR_DIR = ROOT / "vectors"
+# Seuil de similarité (cosine approximé par inner product sur vecteurs normalisés)
+VECTOR_SIMILARITY_THRESH = 0.30
 
 # ============================================================================
 # SEUILS DE CONFIANCE - Pour classifier les prédictions
@@ -87,8 +101,8 @@ def ensure_dependency(module_name: str, pip_name: str | None = None) -> None:
 
 def ensure_runtime_dependencies() -> None:
     """Installe les dépendances requises pour le runtime (matplotlib, tqdm, colorama)."""
-    for module_name in ("matplotlib", "tqdm", "colorama"):
-        ensure_dependency(module_name)
+    for module_name, pip_name in (("matplotlib", None), ("tqdm", None), ("colorama", None), ("cv2", "opencv-python")):
+        ensure_dependency(module_name, pip_name)
 
 
 # Vérifie et installe les dépendances avant de les importer
@@ -100,6 +114,7 @@ ensure_runtime_dependencies()
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import PercentFormatter  # noqa: E402
 from tqdm import tqdm  # noqa: E402
+import cv2  # noqa: E402
 
 try:
     # Tente d'importer colorama pour les couleurs en console
@@ -277,6 +292,112 @@ def build_run_name(source: Path) -> str:
     # Génère un hash SHA1 court du chemin absolu pour l'unicité
     digest = hashlib.sha1(str(source.resolve()).encode("utf-8")).hexdigest()[:10]
     return f"{base_name}_{digest}"
+
+
+def get_recording_subfolder(record: PredictionRecord) -> str:
+    """
+    Détermine le sous-dossier de sauvegarde en fonction du statut métier.
+
+    Args:
+        record: Résultat d'analyse YOLOv5
+
+    Returns:
+        Nom du sous-dossier cible
+    """
+    if record.status == "BDD":
+        return normalize_label(record.top1_class) or "bdd"
+    if record.status == "INCERTITUDE":
+        return "incertitude"
+    return "autre"
+
+
+def build_recording_name(source_path: Path, record: PredictionRecord) -> str:
+    """
+    Génère un nom de fichier unique pour l'image enregistrée.
+
+    Args:
+        source_path: Image analysée
+        record: Résultat d'analyse associé
+
+    Returns:
+        Nom de fichier unique au format JPG
+    """
+    source_base = normalize_label(source_path.stem) or "capture"
+    status_base = get_recording_subfolder(record)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    digest = hashlib.sha1(
+        f"{source_path.resolve()}|{record.status}|{record.top1_class}|{timestamp}".encode("utf-8")
+    ).hexdigest()[:8]
+    return f"{source_base}_{status_base}_{timestamp}_{digest}.jpg"
+
+
+def save_analyzed_image(source_path: Path, record: PredictionRecord) -> Optional[Path]:
+    """
+    Copie l'image analysée dans un dossier dédié au statut détecté.
+
+    Args:
+        source_path: Image analysée
+        record: Résultat d'analyse associé
+
+    Returns:
+        Chemin vers l'image copiée, ou None si la copie a échoué
+    """
+    if not source_path.exists() or not source_path.is_file():
+        print(console_text(f"[ENREGISTREMENT] Image introuvable: {source_path}", Fore.YELLOW, bright=True))
+        return None
+
+    target_dir = ENREGISTREMENTS_DIR / get_recording_subfolder(record)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / build_recording_name(source_path, record)
+
+    try:
+        shutil.copy2(source_path, target_path)
+    except Exception as exc:
+        print(console_text(f"[ENREGISTREMENT] Impossible de copier l'image: {exc}", Fore.RED, bright=True))
+        return None
+
+    print(console_text(f"[ENREGISTREMENT] Image sauvegardée dans: {target_path}", Fore.CYAN, bright=True))
+    return target_path
+
+
+def open_camera(camera_index: int = 0) -> cv2.VideoCapture:
+    """
+    Ouvre la camera de l'ordinateur.
+
+    Args:
+        camera_index: Index de la camera à ouvrir
+
+    Returns:
+        Instance VideoCapture ouverte
+
+    Raises:
+        RuntimeError: Si la camera ne peut pas être ouverte
+    """
+    backend = cv2.CAP_DSHOW if sys.platform == "win32" and hasattr(cv2, "CAP_DSHOW") else 0
+    camera = cv2.VideoCapture(camera_index, backend)
+    if not camera.isOpened():
+        raise RuntimeError(f"Impossible d'ouvrir la camera {camera_index}.")
+    return camera
+
+
+def capture_frame_to_tempfile(frame, temp_dir: Path) -> Path:
+    """
+    Enregistre une frame camera dans un fichier temporaire JPEG.
+
+    Args:
+        frame: Image OpenCV
+        temp_dir: Répertoire temporaire
+
+    Returns:
+        Chemin du fichier image temporaire
+    """
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    frame_name = f"frame_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.jpg"
+    frame_path = temp_dir / frame_name
+    success = cv2.imwrite(str(frame_path), frame)
+    if not success:
+        raise RuntimeError("Impossible d'enregistrer la frame camera dans un fichier temporaire.")
+    return frame_path
 
 
 # ============================================================================
@@ -526,6 +647,18 @@ def print_single_image_result(record: PredictionRecord) -> None:
     print("Probabilités détaillées :")
     for class_name, score in sorted(record.class_scores.items(), key=lambda item: item[1], reverse=True):
         print(f"  - {class_name:<20} {score * 100:6.2f} %")
+    # Si un index vectoriel est disponible, interroger et afficher le voisin le plus proche
+    try:
+        from vector_index import query_image
+        if VECTOR_DIR.exists() and (VECTOR_DIR / "index.faiss").exists():
+            results = query_image(record.image_path, VECTOR_DIR, k=3)
+            if results:
+                print(console_text("\nVoisins visuels (index vectoriel):", Fore.MAGENTA, bright=True))
+                for path, score in results:
+                    print(f"  - {path}  score={score:.3f}")
+    except Exception:
+        # Ne pas planter l'affichage si l'index n'est pas disponible
+        pass
 
 # ============================================================================
 # VISUALISATION GRAPHIQUE - Graphique de confiance pour une image
@@ -790,6 +923,9 @@ def analyze_single_image(image_path: Path) -> None:
     
     # Affiche les résultats en console
     print_single_image_result(record)
+
+    # Sauvegarde l'image dans le dossier correspondant au statut détecté
+    save_analyzed_image(image_path, record)
     
     # Lance la lecture audio appropriée selon le statut
     print()  # Ligne vide pour lisibilité
@@ -876,6 +1012,9 @@ def analyze_folder(folder_path: Path) -> None:
         for image_path, record in tqdm(list(zip(image_files, records)), desc="Analyse des images", unit="image"):
             # Incrémente le compteur du statut
             status_counts[record.status] += 1
+
+            # Sauvegarde l'image dans le dossier correspondant au statut détecté
+            save_analyzed_image(image_path, record)
             
             # Extrait l'étiquette vraie du nom du dossier parent
             true_label = normalize_label(image_path.parent.name)
@@ -923,6 +1062,146 @@ def analyze_folder(folder_path: Path) -> None:
         for p in missing_images:
             print(f" - {p}")
 
+
+def analyze_camera_stream(camera_index: int = 0) -> None:
+    """
+    Lance une boucle de capture depuis la camera et analyse les captures à la demande.
+
+    Args:
+        camera_index: Index de la camera à ouvrir
+    """
+    print(console_text("\nMode camera", Fore.CYAN, bright=True))
+    print("Touches disponibles :")
+    print("  - c ou espace : capturer et analyser la frame courante")
+    print("  - q ou Echap  : quitter")
+
+    camera = open_camera(camera_index)
+    temp_dir = Path(tempfile.mkdtemp(prefix="analyse_oiseaux_camera_"))
+
+    # Event thread-safe pour indiquer si une analyse est en cours
+    analysis_event = threading.Event()
+
+    # Paramètres d'analyse vectorielle continue
+    vector_enabled = VECTOR_DIR.exists() and (VECTOR_DIR / "index.faiss").exists()
+    vector_interval = 2.0  # secondes entre deux analyses vectorielles
+    vector_k = 3  # voisins retournés
+    last_vector_time = 0.0
+    clip_model = None
+    clip_preprocess = None
+    faiss_index = None
+    faiss_mapping = None
+
+    if vector_enabled:
+        try:
+            # Charge les dépendances et le modèle CLIP/FAISS une seule fois
+            ensure_dependency("clip", "git+https://github.com/openai/CLIP.git")
+            ensure_dependency("faiss", "faiss-cpu")
+            ensure_dependency("Pillow")
+            ensure_dependency("torch")
+            import clip
+            import torch
+            import numpy as np
+            from PIL import Image
+            from vector_index import load_index
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
+            faiss_index, faiss_mapping = load_index(VECTOR_DIR)
+            print(console_text(f"[VECTOR] Index chargé ({len(faiss_mapping)} items). Analyse continue activée.", Fore.MAGENTA, bright=True))
+        except Exception as exc:
+            print(console_text(f"[VECTOR] Impossible d'activer l'analyse vectorielle continue: {exc}", Fore.YELLOW, bright=True))
+            vector_enabled = False
+
+    # Cooldown entre captures manuelles (secondes)
+    capture_cooldown = 3.0
+    last_capture_time = 0.0
+
+    try:
+        while True:
+            success, frame = camera.read()
+            if not success:
+                raise RuntimeError(f"Impossible de lire une frame depuis la camera {camera_index}.")
+
+            # Overlay status: affiche si une analyse est en cours ou temps restant avant capture
+            now = time.time()
+            in_progress = analysis_event.is_set()
+            cooldown_remaining = max(0.0, last_capture_time + capture_cooldown - now)
+            if in_progress:
+                status_text = "ANALYSE EN COURS..."
+                color = (0, 200, 200)
+            elif cooldown_remaining > 0.0:
+                status_text = f"Prêt dans {int(math.ceil(cooldown_remaining))}s"
+                color = (0, 200, 200)
+            else:
+                status_text = "Appuyez 'c' ou Espace pour capturer"
+                color = (200, 200, 200)
+
+            cv2.putText(frame, status_text, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA)
+            cv2.imshow("Analyse oiseaux - camera", frame)
+            key = cv2.waitKey(1) & 0xFF
+
+            if key in (ord("q"), 27):
+                break
+
+            # Capture on-demand
+            if key in (ord("c"), ord(" ")):
+                # Evite de lancer plusieurs analyses simultanées
+                if analysis_event.is_set():
+                    print(console_text("[CAMERA] Analyse en cours, veuillez patienter...", Fore.YELLOW, bright=True))
+                else:
+                    frame_path = capture_frame_to_tempfile(frame, temp_dir)
+                    print(console_text(f"[CAMERA] Frame capturée: {frame_path.name}", Fore.CYAN, bright=True))
+
+                    # Lance l'analyse dans un thread séparé pour ne pas bloquer l'UI
+                    def _analyze_async(path: Path):
+                        try:
+                            analysis_event.set()
+                            analyze_single_image(path)
+                        except Exception as e:
+                            print(console_text(f"[CAMERA] Erreur durant l'analyse asynchrone: {e}", Fore.RED, bright=True))
+                        finally:
+                            try:
+                                path.unlink()
+                            except Exception:
+                                pass
+                            analysis_event.clear()
+
+                    # marque le début du cooldown et lance le thread
+                    last_capture_time = time.time()
+                    t = threading.Thread(target=_analyze_async, args=(frame_path,), daemon=True)
+                    t.start()
+
+            # Analyse vectorielle continue (périodique)
+            try:
+                if vector_enabled and (time.time() - last_vector_time) >= vector_interval and clip_model is not None:
+                    # Prépare l'image PIL pour CLIP
+                    import numpy as _np
+                    from PIL import Image as _Image
+                    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_img = _Image.fromarray(img_rgb)
+                    inp = clip_preprocess(pil_img).unsqueeze(0).to(device)
+                    with torch.no_grad():
+                        emb = clip_model.encode_image(inp)
+                    emb_np = emb.cpu().numpy().astype('float32')
+                    emb_np = emb_np / (_np.linalg.norm(emb_np, axis=1, keepdims=True) + 1e-10)
+                    D, I = faiss_index.search(emb_np, vector_k)
+                    # Affiche les voisins sur la frame
+                    y0 = 20
+                    for rank, (score, idx) in enumerate(zip(D[0], I[0])):
+                        if idx < 0:
+                            continue
+                        mapped = faiss_mapping.get(str(int(idx))) or faiss_mapping.get(int(idx)) or str(idx)
+                        text = f"#{rank+1}: {Path(mapped).name} ({float(score):.3f})"
+                        cv2.putText(frame, text, (10, y0 + rank * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1, cv2.LINE_AA)
+                    last_vector_time = time.time()
+            except Exception:
+                # Ne pas interrompre la boucle camera pour une erreur vectorielle
+                pass
+    finally:
+        camera.release()
+        cv2.destroyAllWindows()
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 # ============================================================================
 # INTERACTION UTILISATEUR - Menus et input
 # ============================================================================
@@ -932,16 +1211,34 @@ def ask_user_choice() -> str:
     Affiche un menu et demande à l'utilisateur de choisir une option.
     
     Returns:
-        "1" pour analyser une seule image, "2" pour analyser un dossier
+        "1" pour analyser une seule image, "2" pour analyser un dossier, "3" pour utiliser la camera
     """
     print(console_text("\n=== Analyse oiseaux YOLOv5 ===", Fore.MAGENTA, bright=True))
     print("1. Analyser une seule image")
     print("2. Analyser un dossier complet d'images")
-    choice = input("Votre choix (1/2) : ").strip()
-    while choice not in {"1", "2"}:
-        print(console_text("Choix invalide. Réessaie avec 1 ou 2.", Fore.RED, bright=True))
-        choice = input("Votre choix (1/2) : ").strip()
+    print("3. Analyser depuis la camera")
+    choice = input("Votre choix (1/2/3) : ").strip()
+    while choice not in {"1", "2", "3"}:
+        print(console_text("Choix invalide. Réessaie avec 1, 2 ou 3.", Fore.RED, bright=True))
+        choice = input("Votre choix (1/2/3) : ").strip()
     return choice
+
+
+def ask_camera_index() -> int:
+    """
+    Demande à l'utilisateur l'index de la caméra à ouvrir.
+
+    Returns:
+        Index caméra saisi, ou 0 si la saisie est vide/invalide
+    """
+    raw_value = input("Index de la camera (défaut 0) : ").strip()
+    if not raw_value:
+        return 0
+    try:
+        return int(raw_value)
+    except ValueError:
+        print(console_text("Index invalide, utilisation de la camera 0.", Fore.YELLOW, bright=True))
+        return 0
 
 
 def ask_path(prompt: str) -> Path:
@@ -972,6 +1269,7 @@ def ensure_project_environment() -> None:
         FileNotFoundError: Si les poids ou le script manquent
     """
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    ENREGISTREMENTS_DIR.mkdir(parents=True, exist_ok=True)
     if not WEIGHTS.exists():
         raise FileNotFoundError(f"Poids introuvables: {WEIGHTS}")
     if not PREDICT_SCRIPT.exists():
@@ -1000,10 +1298,14 @@ def main() -> None:
             # Analyse d'une seule image
             image_path = ask_path("Chemin complet de l'image : ")
             analyze_single_image(image_path)
-        else:
+        elif choice == "2":
             # Analyse d'un dossier
             folder_path = ask_path("Chemin complet du dossier : ")
             analyze_folder(folder_path)
+        else:
+            # Analyse depuis la camera
+            camera_index = ask_camera_index()
+            analyze_camera_stream(camera_index)
     except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
         # Erreurs de fichier/dossier
         print(console_text(f"[ERREUR] {exc}", Fore.RED, bright=True))

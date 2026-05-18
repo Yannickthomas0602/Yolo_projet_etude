@@ -221,7 +221,30 @@ Puis choix dans le menu :
 3
 ~~~
 
-## 10. Etapes de mise en place recommandees
+## 10. Classement des images analysées
+
+Chaque image capturée ou analysée est copiée automatiquement dans un sous-dossier du répertoire [enregistrements](enregistrements).
+
+La règle est volontairement simple pour rendre le fonctionnement facile à relire et à contrôler après coup :
+
+- si le modèle reconnaît un héron en BDD, l'image est copiée dans [enregistrements/heron](enregistrements),
+- si le score est en zone d'incertitude, l'image est copiée dans [enregistrements/incertitude](enregistrements),
+- si l'image est classée hors BDD, elle est copiée dans [enregistrements/autre](enregistrements).
+
+Le nom du dossier BDD dépend de la classe détectée. Par exemple :
+
+- `balbuzard` -> `enregistrements/balbuzard`
+- `heron` -> `enregistrements/heron`
+- `cormoran` -> `enregistrements/cormoran`
+- `mouette_goeland` -> `enregistrements/mouette_goeland`
+
+Ce choix permet de séparer proprement les cas d'usage :
+
+- les images reconnues servent de preuve de détection,
+- les images en incertitude servent à revoir les cas limites,
+- les images hors BDD servent à enrichir le retour terrain ou à repérer des erreurs de modèle.
+
+## 11. Etapes de mise en place recommandees
 
 1. Ajouter la dependance OpenCV si elle manque.
 2. Ajouter le choix camera dans le menu ou dans argparse.
@@ -231,7 +254,7 @@ Puis choix dans le menu :
 6. Afficher le resultat avec les memes seuils metiers que les autres modes.
 7. Tester sur une camera interne puis sur une camera externe si besoin.
 
-## 11. Tests a valider
+## 12. Tests a valider
 
 Avant de considerer le mode camera comme termine, il faut verifier :
 
@@ -242,7 +265,7 @@ Avant de considerer le mode camera comme termine, il faut verifier :
 - la lecture audio ne boucle pas sans controle,
 - les fichiers temporaires sont nettoyes.
 
-## 12. Integration documentaire
+## 13. Integration documentaire
 
 Si tu veux rendre cette fonctionnalite plus visible dans la documentation existante, ajoute ensuite un lien vers ce document depuis :
 
@@ -251,3 +274,42 @@ Si tu veux rendre cette fonctionnalite plus visible dans la documentation exista
 - [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md).
 
 Cela permettra de garder une entree courte pour le lancement, et une page detaillee pour la camera.
+
+## 14. Analyse vectorielle continue (CLIP + FAISS)
+
+Principe :
+
+- On utilise CLIP (modèle de représentation visuelle) pour convertir une image en un vecteur d'embedding haute-dimension.
+- Ces embeddings sont normalisés puis indexés avec FAISS (index vecteur rapide) pour permettre des recherches des plus proches voisins (ANN).
+- En mode caméra continue, on calcule périodiquement l'embedding de la frame courante et on interroge l'index FAISS pour récupérer les images visuellement proches (voisins).
+
+Pourquoi c'est utile :
+
+- Permet de retrouver rapidement des images similaires issues d'un jeu de référence (ex: `dataset_oiseaux` + `enregistrements`).
+- Utile pour détecter des occurrences récentes d'une même espèce ou repérer des faux positifs fréquents.
+- Peut être combiné avec la classification (règles métier) : si le classifieur est incertain mais le plus proche voisin a une similarité élevée, on peut considérer cela comme un signal d'appui.
+
+Comportement en pratique :
+
+- Le script charge l'index FAISS et le modèle CLIP une seule fois au démarrage de la caméra.
+- Pour limiter la charge GPU/CPU, l'embedding est calculé toutes les N secondes (par défaut 2s). L'utilisateur peut ajuster ce délai dans le code.
+- Les voisins et leurs scores sont dessinés en overlay sur la fenêtre vidéo pour feedback immédiat.
+- Option avancée : déclencher automatiquement une capture/enregistrement quand la similarité dépasse un seuil calibré (ex: 0.30). Ceci n'est pas activé par défaut mais peut être ajouté dans `analyse_oiseaux.py`.
+
+Comment construire l'index :
+
+1. Active l'environnement Python du projet.
+2. Lance la commande suivante depuis le dossier `yolov5` :
+
+```bash
+python vector_index.py --build --sources dataset_oiseaux enregistrements --out vectors
+```
+
+3. Le dossier `vectors` contiendra `index.faiss` et `mapping.json`. Au prochain lancement de la caméra, l'analyse vectorielle continue s'activera automatiquement si l'index est présent.
+
+Remarques de performance :
+
+- CLIP encode les images : sur CPU cela peut être lent ; préférez un GPU si disponible.
+- Pour des flux en temps réel, réduisez la résolution d'entrée ou augmentez l'intervalle `vector_interval`.
+- Pour un usage embarqué, envisagez des modèles plus légers (distil-CLIP ou Mobile-compatible).
+

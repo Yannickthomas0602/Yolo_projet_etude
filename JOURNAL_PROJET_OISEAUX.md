@@ -188,6 +188,18 @@ Fonction façade qui orchestre l'ensemble du processus de lecture audio :
 1. Recherche un fichier audio pour l'oiseau
 2. Sélectionne un son aléatoirement
 3. Lance la lecture automatique
+
+## 8. Classement automatique des images analysées (mai 2026)
+
+Le script [analyse_oiseaux.py](analyse_oiseaux.py) copie maintenant les images analysées dans un répertoire dédié selon le résultat obtenu.
+
+Règle actuelle :
+
+- classe reconnue en BDD -> dossier spécifique à l'espèce, par exemple [enregistrements/heron](enregistrements),
+- INCERTITUDE -> [enregistrements/incertitude](enregistrements),
+- HORS_BDD -> [enregistrements/autre](enregistrements).
+
+L'objectif est de garder une trace visuelle simple des tests, de faciliter les vérifications manuelles et de conserver séparés les cas sûrs, douteux et hors dataset.
 4. Retourne le statut de la lecture
 
 ### 7.4 Intégration dans `analyze_single_image()`

@@ -1,0 +1,5 @@
+INCERTITUDE: cormoran 0.50
+0.50 cormoran
+0.36 mouette_goeland
+0.09 heron
+0.05 balbuzard

@@ -64,6 +64,8 @@ Si ton dossier contient des sous-dossiers de classes, tu peux aussi lancer [anal
 
 Note : en mode dossier, `analyse_oiseaux.py` n'enregistre pas les images annotées une par une (utilise `--nosave` pour accélérer l'analyse) ; il génère un résumé JSON et des graphiques professionnels dans le dossier `results/`.
 
+Si tu veux utiliser la camera de l'ordinateur et comprendre où sont rangées les images selon leur statut, lis aussi [MODE_CAMERA_OISEAUX.md](MODE_CAMERA_OISEAUX.md).
+
 ## 3.1 Ajouter une classe "autre" et ré-entraîner (optionnel)
 
 Si tu veux que le modèle apprenne explicitement une classe `autre` pour représenter les espèces hors BDD, suis ces étapes :
@@ -113,3 +115,4 @@ Les poids seront enregistrés dans runs/train-cls/exp*/weights/.
 - Détails d'installation et d'entraînement : [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md)
 - Historique des décisions : [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md)
 - Logique métier BDD / INCERTITUDE / HORS_BDD : [classify/predict.py](classify/predict.py)
+ - Recherche visuelle (vectorielle) : [MODE_VECTORIEL.md](MODE_VECTORIEL.md)
