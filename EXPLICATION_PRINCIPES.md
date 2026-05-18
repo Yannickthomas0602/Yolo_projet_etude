@@ -166,6 +166,62 @@ python analyse_oiseaux.py --camera
 
 ---
 
+## Schémas
+
+Voici trois schémas Mermaid pour visualiser l'architecture, le flux d'envoi Azure et le flux de recherche vectorielle.
+
+### Architecture générale
+
+```mermaid
+flowchart LR
+  Camera[Caméra / Image] -->|capture| Inference[Inference (YOLOv5)]
+  Inference --> Post[Post‑traitement]
+  Post --> Save[Enregistrement trié (`enregistrements/`)]
+  Post --> Audio[Lecture audio (optionnelle)]
+  Post --> Azure[Upload Azure (optionnel)]
+  Post --> Vector[Recherche vectorielle (FAISS)]
+  Vector -->|voisins| Post
+  Save --> Archive[Archivage / Historique]
+  classDef optional fill:#f9f,stroke:#333,stroke-width:1px;
+  Audio,Azure,Vector class optional
+```
+
+### Flux d'envoi vers Azure (Blob + IoT Hub)
+
+```mermaid
+sequenceDiagram
+  participant Cam as Caméra
+  participant App as Application locale
+  participant Blob as Azure Blob Storage
+  participant IoT as Azure IoT Hub
+
+  Cam->>App: capture image
+  App->>App: inférence + décision (BDD/INCERTITUDE/HORS_BDD)
+  alt doit envoyer
+    App->>Blob: upload du blob (image)
+    Blob-->>App: confirmation upload
+    App->>IoT: envoi message télémétrie (métadonnées)
+    IoT-->>App: ack
+  else pas d'envoi
+    App-->>Cam: rien à faire
+  end
+```
+
+### Flux de recherche vectorielle (CLIP + FAISS)
+
+```mermaid
+flowchart LR
+  Img[Image] --> CLIP[CLIP: calcul embeddings]
+  CLIP --> Normalize[Normalisation (L2)]
+  Normalize --> FAISS[FAISS: interroger index]
+  FAISS --> Neighbors[Liste de voisins les plus proches]
+  Neighbors --> Decision[Combinaison avec score du classifieur]
+  Decision -->|si utile| Post
+```
+
+Tu peux prévisualiser ces diagrammes dans VS Code (extension Mermaid) ou sur GitHub si le rendu Mermaid est activé.
+
+
 Si tu veux, j'ajoute :
 - un script `scripts/build_vector_index.py` d'exemple prêt à l'emploi,
 - des tests d'intégration d'inférence minimal,
