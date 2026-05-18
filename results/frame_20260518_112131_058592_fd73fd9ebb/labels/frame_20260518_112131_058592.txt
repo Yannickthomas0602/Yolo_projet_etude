@@ -1,5 +1,0 @@
-BDD: heron 0.86
-0.86 heron
-0.08 mouette_goeland
-0.03 cormoran
-0.03 balbuzard

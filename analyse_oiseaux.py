@@ -104,7 +104,7 @@ AZURE_UPLOAD_ENABLED = os.getenv("AZURE_UPLOAD_ENABLED", "1").strip().lower() no
 AZURE_STORAGE_CONN = os.getenv("AZURE_STORAGE_CONN", "").strip()
 AZURE_IOT_HUB_CONN = os.getenv("AZURE_IOT_HUB_CONN", "").strip()
 AZURE_BLOB_CONTAINER = os.getenv("AZURE_BLOB_CONTAINER", "archives-photos").strip() or "archives-photos"
-AZURE_APPAREIL = os.getenv("AZURE_APPAREIL", "Bassin_01").strip() or "Bassin_01"
+AZURE_APPAREIL = os.getenv("AZURE_APPAREIL", "Piscine-Rennes-01").strip() or "Piscine-Rennes-01"
 
 # ============================================================================
 # SEUILS DE CONFIANCE - Pour classifier les prédictions
@@ -1061,7 +1061,28 @@ def analyze_single_image(image_path: Path) -> None:
 
     # Envoi vers Azure si configuré (image locale renommée + payload IoT)
     if saved_image_path is not None:
-        transferer_donnees_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
+        # Prefer the new uploader that writes image -> archives-photos and JSON -> archives-json
+        try:
+            azure_transfer = import_module("scripts.azure_transfer")
+            if hasattr(azure_transfer, "transferer_fichiers_azure"):
+                try:
+                    azure_transfer.transferer_fichiers_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
+                except Exception as e:
+                    print(console_text(f"[Azure] Erreur via scripts.azure_transfer: {e}", Fore.YELLOW, bright=True))
+                    # fallback to legacy IoT+Blob sender
+                    try:
+                        transferer_donnees_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
+                    except Exception as exc:
+                        print(console_text(f"[Azure] Échec fallback: {exc}", Fore.RED, bright=True))
+            else:
+                # If the function is not present, fallback to legacy behaviour
+                transferer_donnees_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
+        except Exception:
+            # Fallback: call the original transferer if new script missing
+            try:
+                transferer_donnees_azure(saved_image_path, record.top1_class, record.top1_score, record.status)
+            except Exception as exc:
+                print(console_text(f"[Azure] Échec de l'envoi legacy: {exc}", Fore.RED, bright=True))
     
     # Génère un graphique de confiance
     print()  # Ligne vide pour lisibilité

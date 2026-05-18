@@ -68,12 +68,13 @@ Si tu veux utiliser la camera de l'ordinateur et comprendre où sont rangées le
 
 ## 3.2 Synchroniser automatiquement sur Azure (optionnel)
 
-Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque détection vers Azure Blob Storage et Azure IoT Hub si les variables d'environnement suivantes sont définies. Le script charge automatiquement un fichier local [`.env`](.env) s'il est présent à la racine du projet.
+Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque détection vers Azure Blob Storage si les variables d'environnement suivantes sont définies. Le script charge automatiquement un fichier local [`.env`](.env) s'il est présent à la racine du projet.
 
 - `AZURE_STORAGE_CONN`
 - `AZURE_IOT_HUB_CONN`
 - `AZURE_BLOB_CONTAINER` (défaut : `archives-photos`)
-- `AZURE_APPAREIL` (défaut : `Bassin_01`)
+- `AZURE_JSON_CONTAINER` (défaut : `archives-json`)
+- `AZURE_APPAREIL` (défaut : `Piscine-Rennes-01`)
 
 Exemple PowerShell :
 
@@ -81,11 +82,22 @@ Exemple PowerShell :
 $env:AZURE_STORAGE_CONN = "DefaultEndpointsProtocol=https;..."
 $env:AZURE_IOT_HUB_CONN = "HostName=...;DeviceId=...;SharedAccessKey=..."
 $env:AZURE_BLOB_CONTAINER = "archives-photos"
-$env:AZURE_APPAREIL = "Bassin_01"
+$env:AZURE_JSON_CONTAINER = "archives-json"
+$env:AZURE_APPAREIL = "Piscine-Rennes-01"
 python analyse_oiseaux.py
 ```
 
-Le téléversement utilise l'image déjà renommée localement, puis envoie un message IoT standardisé avec la classe détectée, le score et le statut métier.
+Le téléversement envoie maintenant deux blobs liés par le même timestamp :
+
+- l'image dans `archives-photos`
+- le JSON descriptif dans `archives-json`
+
+Le JSON contient notamment : `appareil`, `oiseau`, `confiance`, `action`, `heure` (date + heure), `timestamp`, `statut`.
+Le champ `action` dépend du statut métier :
+
+- `BDD` -> `bonne effarouchement`
+- `INCERTITUDE` -> `enffarouchement par defaut`
+- `autre` / `HORS_BDD` -> `pas d'effarouchement`
 
 ## 3.1 Ajouter une classe "autre" et ré-entraîner (optionnel)
 

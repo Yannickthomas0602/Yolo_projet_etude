@@ -1,5 +1,0 @@
-BDD: mouette_goeland 0.75
-0.75 mouette_goeland
-0.10 balbuzard
-0.09 heron
-0.06 cormoran

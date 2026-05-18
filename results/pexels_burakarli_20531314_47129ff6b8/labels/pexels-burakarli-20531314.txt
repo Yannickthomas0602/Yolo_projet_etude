@@ -1,0 +1,15 @@
+INCERTITUDE: balbuzard 0.48
+0.48 balbuzard
+0.42 mouette_goeland
+0.06 cormoran
+0.05 heron
+INCERTITUDE: balbuzard 0.48
+0.48 balbuzard
+0.42 mouette_goeland
+0.06 cormoran
+0.05 heron
+INCERTITUDE: balbuzard 0.48
+0.48 balbuzard
+0.42 mouette_goeland
+0.06 cormoran
+0.05 heron

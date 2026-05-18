@@ -398,6 +398,27 @@ La prochaine étape naturelle est de brancher la décision métier sur la lectur
 
 Un script dédié a été ajouté pour simplifier les analyses d'images sans retaper la commande YOLOv5 complète.
 
+## Mises à jour récentes (18 mai 2026)
+
+Résumé des modifications récentes intégrées au dépôt :
+
+- Mode caméra : ajout d'un mode caméra réactif utilisant un thread d'acquisition, avec cooldown pour éviter l'analyse en continu et sauvegarde des images analysées.
+- Gestion propre de l'interruption (Ctrl-C) : recommandations et nettoyages (`cap.release()`, `cv2.destroyAllWindows()`, arrêt des threads) pour éviter les warnings au shutdown.
+- Lecture audio : intégration complète pour la lecture automatique des cris (fichiers MP3) lors d'une analyse d'image unique, avec `canon.mp3` en cas d'INCERTITUDE.
+- Classement des images : les images analysées sont copiées dans `enregistrements/` selon le statut (`BDD/`, `INCERTITUDE/`, `HORS_BDD/`).
+- Intégration Azure (optionnelle) : ajout de `transferer_donnees_azure()` puis bascule vers `scripts/azure_transfer.py` pour envoyer l'image vers `archives-photos` et le JSON vers `archives-json`. Le JSON inclut `heure` au format `HH:MM`, `statut` et une `action` dérivée du statut métier. Les imports Azure sont dynamiques pour tolérer l'absence de SDK.
+- Installation SDKs : `azure-storage-blob` et `azure-iot-device` installés dans l'environnement virtuel pour les tests locaux.
+- Prototype vectoriel : ajout d'un prototype CLIP + FAISS (`vectors/index.faiss` attendu) + script de construction prévu dans `scripts/` (index hors-ligne).
+- Documentation enrichie : ajouts de schémas Mermaid dans `EXPLICATION_PRINCIPES.md` (architecture, flux Azure, flux vectoriel) et nettoyage pour compatibilité des parsers Mermaid.
+- Sécurité : note importante sur la rotation des clés Azure si des secrets ont été exposés accidentellement et recommandation d'utiliser `.env` non suivi par git.
+
+Si tu veux, je peux :
+
+- automatiser le build de l'index vectoriel (`scripts/build_vector_index.py`) ;
+- générer les images SVG/PNG des diagrammes Mermaid dans `docs/images/` ;
+- committer ces modifications et ouvrir une PR si tu veux un historique distinct.
+
+
 ### 11.1 Nouveau point d'entrée
 
 - [analyse_oiseaux.py](analyse_oiseaux.py)
