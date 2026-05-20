@@ -1,55 +1,106 @@
-# Mode vectoriel (CLIP + FAISS)
 
-Cette page explique comment construire un index vectoriel d'images et l'utiliser depuis `analyse_oiseaux.py` pour améliorer la décision métier (détecter si une image est proche d'images connues du dataset).
+# Mode vectoriel : CLIP + FAISS
+
+Ce document explique comment le projet utilise CLIP pour produire des embeddings et FAISS pour indexer et rechercher des images similaires.
 
 ## Principe
 
-- On extrait un embedding (vecteur) pour chaque image du dataset (ou des images déjà enregistrées) à l'aide d'un modèle d'embeddings visuels (ici CLIP). 
-- On indexe ces vecteurs avec FAISS pour effectuer des recherches rapides de voisins les plus proches.
-- Lors d'une analyse d'image (mode image ou caméra), on calcule l'embedding de l'image et on interroge l'index.
-- Si le voisin le plus proche est suffisamment similaire (distance élevée / inner product proche de 1), on peut en déduire que l'image est « proche » d'une image BDD et adapter la décision métier.
+1. Construire un index hors ligne à partir d'un ensemble d'images de référence.
+2. Pour chaque image d'entrée, calculer un embedding via CLIP.
+3. Interroger l'index FAISS pour récupérer les voisins.
 
-## Fichiers ajoutés
+## 1) Prérequis
 
-- `vector_index.py` : outil pour construire l'index (`--build`) et pour interroger (`query_image`).
-- `vectors/` : répertoire cible attendu pour l'index (`index.faiss`) et la `mapping.json`.
+- Installer `faiss` (ou `faiss-cpu`) et `transformers`/`clip` selon ton environnement.
+- Avoir un dossier `vectors/` où seront écrits `index.faiss` et `mapping.json`.
 
-## Installation des dépendances
+Exemples d'installation (Linux/Windows/GPU) :
 
-Le script tente d'installer automatiquement les dépendances s'il les trouve manquantes :
-
-- CLIP (OpenAI), FAISS CPU, Pillow, tqdm.
-
-Si tu préfères installer manuellement :
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-pip install git+https://github.com/openai/CLIP.git faiss-cpu Pillow tqdm
+```bash
+pip install faiss-cpu
+pip install ftfy regex tqdm
+pip install git+https://github.com/openai/CLIP.git
 ```
 
-## Construire l'index
+ou pour GPU (si supporté) :
 
-Exemple :
+```bash
+pip install faiss-gpu
+```
 
-```powershell
+## 2) Construction de l'index
+
+Le script `vector_index.py` sert à construire l'index. Le flux typique est :
+
+1. Rassembler les images sources (par ex. `dataset_oiseaux`, `enregistrements`).
+2. Pour chaque image, calculer l'embedding CLIP.
+3. Normaliser chaque embedding (norme L2) pour utiliser le produit intérieur comme critère de similarité.
+4. Insérer les vecteurs dans un index FAISS adapté (ex: `IndexFlatIP` pour inner product) et sauvegarder `index.faiss`.
+
+Commandes recommandées :
+
+```bash
 python vector_index.py --build --sources dataset_oiseaux enregistrements --out vectors
 ```
 
-Le script parcourra les dossiers `dataset_oiseaux` et `enregistrements`, extraira les embeddings, construira l'index et sauvegardera :
+## 3) Format de `mapping.json`
 
-- `vectors/index.faiss`
-- `vectors/mapping.json`
+Le fichier `mapping.json` associe chaque identifiant de vecteur (int) au chemin de l'image correspondante ainsi qu'à des métadonnées utiles (classe, timestamp, provenance). Exemple :
 
-## Utilisation dans `analyse_oiseaux.py`
+```json
+{
+	"0": {"path": "dataset_oiseaux/train/heron/img001.jpg", "class": "heron"},
+	"1": {"path": "enregistrements/heron/2026-05-18_14-14-46.jpg", "class": "heron"}
+}
+```
 
-- Si `vectors/index.faiss` est présent, `analyse_oiseaux.py` interroge automatiquement l'index après l'analyse d'une image et affiche les voisins visuels (chemin + score). 
-- Le score est un inner product sur vecteurs normalisés (équivalent approximatif du cosinus). Plus il est proche de 1.0, plus la similitude est élevée.
+## 4) Utilisation en inference
 
-## Stratégie d'intégration recommandée
+- Charger `index.faiss` et `mapping.json` au démarrage si disponibles.
+- Pour chaque image, calculer l'embedding via CLIP, normaliser, puis demander les K voisins via FAISS (`index.search`).
+- Combiner le résultat FAISS (similarité) et la sortie du classifieur YOLO pour améliorer la décision.
 
-- Phase offline : construire l'index régulièrement (après avoir collecté de nouvelles images dans `enregistrements`).
-- Phase online : lors d'une prédiction faible (HORS_BDD ou INCERTITUDE), interroger l'index ; si similitude > seuil (ex: 0.3–0.5 selon calibration), considérer la piste BDD et enregistrer l'information pour revue humaine.
+Exemples pratiques :
 
-## Calibration
+- Si YOLO renvoie une classe `incertain` mais FAISS trouve un voisin très proche (sim > 0.8), considérer cet élément pour revue humaine prioritaire.
+- Si FAISS trouve des voisins multiples avec la même classe, renforcer la confiance locale sur cette classe.
 
-Calibre le seuil en analysant les distances entre images connues (intra-classe) et images hors-BDD sur un jeu de validation. Commence par 0.30 et ajuste vers 0.50 si trop de faux positifs.
+## 5) Mise à jour de l'index
+
+- L'index doit être reconstruit périodiquement si de nouvelles images significatives arrivent (ex: nouvel enregistrement).
+- Alternativement, utiliser un index FAISS qui supporte l'ajout dynamique si la latence de construction complète est trop élevée.
+
+## 6) Parametres conseils
+
+- `K=5` voisins par defaut.
+- `normalize=True` (L2) avant insertion.
+- `index_type=IndexFlatIP` si l'on utilise inner product.
+- `nprobe` plus eleve pour des recherches plus precisess mais plus lentes (s'applique aux indexes quantifies).
+
+## 7) Exemple d'API d'appel (pseudocode)
+
+```python
+from vector_index import load_index, query
+
+index, mapping = load_index('vectors/index.faiss', 'vectors/mapping.json')
+vec = clip_encode(image)
+vec = vec / np.linalg.norm(vec)
+ids, scores = index.search(vec.reshape(1, -1), k=5)
+results = [mapping[str(i)] for i in ids[0]]
+```
+
+## 8) Clauses et limitations
+
+- FAISS stocke des vecteurs en memoire; pour des corpus enormes, il faut envisager des indexes compresses ou une architecture distribuée.
+- L'usage de CLIP a des biais selon le training data. Valide les resultats sur ton jeu d'images local.
+
+## 9) Intégration dans `analyse_oiseaux.py`
+
+1. Charger l'index s'il existe lors du demarrage du script.
+2. Ajouter une option `--vector-interval` pour controler la frequence de calcul des embeddings en mode camera.
+3. Ajouter un overlay dans la fenetre video pour afficher les meilleurs voisins et scores.
+
+---
+
+Si tu veux, je peux écrire `vector_index.py` (ou l'améliorer) pour ton jeu de donnees et fournir un exemple complet de pipeline de construction et de requete.
+
