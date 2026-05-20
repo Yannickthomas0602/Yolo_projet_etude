@@ -366,66 +366,112 @@ Le modèle ajuste **des millions de poids** de manière interdépendante. C'est 
 
 ---
 
-## 5. Les Réseaux de Neurones Convolutifs (CNN)
 
-### 5.1 Pourquoi pas de neurones classiques pour les images ?
+### 5. Les Réseaux de Neurones Convolutifs (suite détaillée)
 
-Une image 640×640 en couleur = 640 × 640 × 3 = **1,228,800 pixels**.
-Connecter chaque pixel à chaque neurone = **explosion des paramètres** → impossible d'entraîner.
+La section précédente expliquait l'idée générale des convolutions ; voici des détails pratiques et conseils pour l'entraînement et le déploiement.
 
-### 5.2 Solution : Les Convolutions
+## 6. Entraînement avancé et bonnes pratiques
 
-Une **convolution** est une opération mathématique qui :
-1. Glisse un petit filtre sur l'image
-2. Détecte des motifs locaux (arêtes, formes, textures)
-3. Réduit drastiquement le nombre de paramètres
+### 6.1 Préparation des données
 
-... (le reste du document contient explications détaillées similaires à la version précédente)
+- Vérifie la qualité des labels : des labels incorrects dégradent fortement le modèle.
+- Équilibre les classes si possible (ou utilise pondération dans la perte).
+- Sépare correctement train/validation/test.
+- Utilise des métadonnées (timestamp, localisation) si elles peuvent aider l'analyse.
+
+### 6.2 Augmentations recommandées
+
+- Transformations basiques : flips horizontaux, rotations faibles, variations de luminosité/contraste, blur léger.
+- Transformations spécifiques : zooms, translations, cutout, random erasing pour rendre le modèle robuste.
+- Attention aux augmentations qui modifient la sémantique (ne pas inverser une image si cela change la classe).
+
+### 6.3 Hyperparamètres importants
+
+- `learning_rate` : paramètre clé ; utilise scheduler (cosine, step) ou warmup.
+- `batch_size` : plus grand batch réduit le bruit des gradients ; attention à la mémoire GPU.
+- `weight_decay` : régularisation pour éviter l'overfitting.
+- `epochs` : surveille le loss et le mAP sur validation pour éviter le surapprentissage.
+
+### 6.4 Techniques utiles
+
+- Fine-tuning : charger un modèle pré-entraîné et réentraîner les couches supérieures.
+- Mixed Precision (FP16) : réduit l'utilisation mémoire et accélère sur GPU compatibles.
+- Early stopping : arrêter l'entraînement si la validation ne s'améliore plus.
+
+## 7. Évaluation et métriques
+
+### 7.1 mAP (mean Average Precision)
+
+- mAP@0.5 : mesure courante pour object detection — considère une prédiction correcte si IoU ≥ 0.5.
+- mAP@[0.5:0.95] : mesure plus stricte et standard COCO, moyenne de 0.5 à 0.95 par pas de 0.05.
+
+### 7.2 Autres métriques utiles
+
+- Precision / Recall : indique le compromis entre faux positifs et faux négatifs.
+- Confusion matrix par classe : utile pour voir quelles classes sont confondues.
+- Analyse des erreurs (erreurs fréquentes, exemples de faux positifs/negatifs).
+
+## 8. Optimisations d'inférence
+
+### 8.1 Export et quantification
+
+- Exporter le modèle vers ONNX, TensorRT ou TorchScript pour accélérer l'inférence.
+- Quantification (INT8) : réduit la taille et accélère, mais nécessite calibration pour limiter la perte de précision.
+
+### 8.2 Paramètres d'inférence
+
+- Resize d'entrée : réduire la résolution pour gagner en performance, tester l'impact sur la précision.
+- NMS threshold et score threshold : ajuster pour trouver le meilleur équilibre.
+
+## 9. Déploiement & production
+
+### 9.1 Scénarios
+
+- Edge (Raspberry/Jetson) : privilégier modèles légers (yolov5n/s) et quantification.
+- Serveur GPU : modèles plus larges, batch d'inférence.
+
+### 9.2 Surveillance en production
+
+- Collecte des images classées comme `INCERTITUDE` et `HORS_BDD` pour revue humaine.
+- Monitoring du drift (changement de distribution d'images) via métriques et sampling.
+
+## 10. Spécificités du projet (conseils pratiques)
+
+- Sauvegarder les images analysées dans `enregistrements/` classées par statut pour faciliter la revue et la réindexation.
+- Utiliser `vector_index.py` pour retrouver visuellement des images similaires et aider la décision sur les cas douteux.
+- Gérer la lecture audio avec un cooldown et uniquement pour analyses single-image.
+
+## 11. Commandes utiles (exemples)
+
+Entraînement rapide :
+```bash
+python train.py --img 640 --batch 16 --epochs 50 --data data/dataset_oiseaux.yaml --weights yolov5s.pt
+```
+
+Inférence / analyse d'une image :
+```bash
+python analyse_oiseaux.py --mode image --source path/to/image.jpg
+```
+
+Construire l'index CLIP+FAISS :
+```bash
+python vector_index.py --build --sources dataset_oiseaux enregistrements --out vectors
+```
+
+## 12. Problèmes courants et solutions
+
+- Overfitting : augmenter les augmentations, réduire la complexité, utiliser weight decay.
+- Mauvais labels : audit et correction manuelle, utiliser des heuristiques pour détecter labels suspects.
+- Latence trop élevée : réduire résolution, quantifier, utiliser batch ou accélérateurs matériels.
+
+## 13. Ressources & références
+
+- YOLOv5 repository : https://github.com/ultralytics/yolov5
+- CLIP repository : https://github.com/openai/CLIP
+- FAISS documentation : https://github.com/facebookresearch/faiss
 
 ---
 
-## 🎯 **IMPORTANT : Les 5 Preuves que YOLOv5 est une VRAIE IA**
+Si tu veux, je peux transformer ces sections en un guide imprimable (PDF) ou générer un tableau de commandes et checkpoints pour la reproduction exacte des expériences. Dis‑moi si tu veux que je mette à jour aussi d'autres fichiers Markdown ou que je lance les tests/commits. 
 
-### ✅ Preuve 1 : 46 Millions de Paramètres
-
-```
-IF/ELSE: 0 paramètres
-YOLOv5l: 46,000,000 paramètres ← des MILLIONS de poids !
-
-Chaque paramètre est un nombre qui se met à jour lors de l'entraînement.
-Ces millions de nombres codent le "savoir" de l'IA.
-C'est impossible avec if/else.
-```
-
-### ✅ Preuve 2 : Apprentissage Automatique (Les Données Créent la Logique)
-
-```
-IF/ELSE (mauvais):
-  - Un programmeur écrit manuellement: "if long_beak and gray_color then héron"
-  - La logique vient du cerveau humain
-  - Rigide et limité
-
-YOLOv5 (bon):
-  - Reçoit 650 images de hérons différents
-  - Ajuste automatiquement les 46M paramètres pour y correspondre
-  - La logique ÉMERGE des données, pas du code
-  - Changer les données = différent modèle
-```
-
-### ✅ Preuve 3 : Généralisation à l'Inconnu
-
-```
-IF/ELSE:
-  "J'ai vu un héron gris → je ne reconnais que les hérons gris"
-  Échoue sur un héron brun ou albinos
-
-YOLOv5:
-  "J'ai appris les CONCEPTS d'un héron"
-  Reconnaît même un héron de couleur inhabituelle
-  Reconnaît même un héron qu'il n'a jamais vu
-  → C'est une vraie compréhension
-```
-
----
-
-... (contenu abrégé pour lisibilité)
