@@ -1,7 +1,7 @@
 # Projet Oiseaux — YOLOv5
 
 Description
-- Ce répertoire contient une adaptation locale de YOLOv5 dédiée à l'analyse et la classification d'oiseaux, avec les scripts d'entraînement, d'inférence et la documentation spécifique au projet.
+- Ce répertoire contient une adaptation locale de YOLOv5 dédiée à l'analyse et la classification d'oiseaux, avec les scripts d'entraînement, d'inférence et la documentation spécifique au projet. Ce projet a un but éducatif et pédagogique uniquement, et n'a pas vocation à être commercialisé ni produit à grande échelle.
 
 Contexte et documentation essentielle
 - [01_GUIDE_OISEAUX.md](01_GUIDE_OISEAUX.md) — Guide d'utilisation spécifique au projet oiseaux
