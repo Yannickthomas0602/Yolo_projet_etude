@@ -53,11 +53,7 @@ python -m pip install -r requirements.txt
 python detect.py --source path/to/image.jpg --weights yolov5s-cls.pt
 ```
 
-Contribution
-- Ouvrez une issue ou une PR. Pour fournir le livrable, créez un répertoire `livrable/` à la racine du dépôt principal et ajoutez-y le package (ZIP, PDF, etc.) ou publiez-le via une release GitHub.
+Yolov5
+- Voir [README_Yolov5.md](README_Yolov5.md) pour plus d'informations sur Yolov5.
 
-Contact
-- Voir [README_Yolov5.md](README_Yolov5.md) pour plus d'informations générales.
 
----
-_Fichier mis à jour — adaptez si nécessaire._
