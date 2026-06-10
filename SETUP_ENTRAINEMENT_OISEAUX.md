@@ -1,6 +1,6 @@
-# Guide Complet : Mise en Place de l'Entraînement YOLOv5 pour la Reconnaissance d'Oiseaux
+# Guide Complete : Mise en Place de l'Entraînement YOLOv5 pour la Reconnaissance d'Oiseaux
 
-Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 4 classes d'oiseaux à partir du projet YOLOv5. Le prototype est déjà organisé autour du dataset classé, de l'entraînement GPU et d'une logique de sortie pour `BDD`, `INCERTITUDE` et `HORS_BDD`.
+Ce guide vous explique **étape par étape** comment mettre en place l'entraînement d'une Intelligence Artificielle pour reconnaître 4 classes d'oiseaux à partir du project YOLOv5. Le prototype est déjà organisé autour du dataset classé, de l'entraînement GPU et d'une logique de sortie pour `BDD`, `INCERTITUDE` et `HORS_BDD`.
 
 Pour lancer directement le modèle ou tester une image, consultez d'abord [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md).
 
@@ -8,10 +8,10 @@ Pour lancer directement le modèle ou tester une image, consultez d'abord [LANCE
 
 ## Table des Matières
 
-1. [Vue d'ensemble du projet](#1-vue-densemble-du-projet)
+1. [Vue d'ensemble du project](#1-vue-densemble-du-project)
 2. [Préparation de l'environnement](#2-préparation-de-lenvironnement)
 3. [Gestion et nettoyage du dataset](#3-gestion-et-nettoyage-du-dataset)
-4. [Organisation des dossiers](#4-organisation-des-dossiers)
+4. [Organization des dossiers](#4-organisation-des-dossiers)
 5. [Entraînement du modèle](#5-entraînement-du-modèle)
 6. [Validation et test](#6-validation-et-test)
 7. [Pipeline temps réel](#7-pipeline-temps-réel)
@@ -19,18 +19,20 @@ Pour lancer directement le modèle ou tester une image, consultez d'abord [LANCE
 
 ---
 
-## 1. Vue d'ensemble du projet
+## 1. Vue d'ensemble du project
 
 ### 1.1 Objectif global
 
-Créer un système complet de reconnaissance d'oiseaux qui :
+Créer un système complete de reconnaissance d'oiseaux qui :
+
 1. **Détecte** l'oiseau dans une image ou un flux vidéo
 2. **Identifie** son espèce parmi 4 classes cibles
-3. **Joue** automatiquement un son correspondant
+3. **Joue** automatiquement un son correspondent
 
 ### 1.2 Les 4 classes cibles
 
-Le prototype vise à gérer exactement ces 4 classes, mais **à ce stade nous ne les avons pas encore toutes dans le dataset** :
+Le prototype vice à gérer exactement ces 4 classes, mais **à ce stade nous ne les avons pas encore toutes dans le dataset** :
+
 - **Héron**
 - **Balbuzard**
 - **Mouette-Goeland**
@@ -38,14 +40,15 @@ Le prototype vise à gérer exactement ces 4 classes, mais **à ce stade nous ne
 
 L'objectif du guide est donc de décrire la préparation du pipeline, le lancement de l'entraînement et la façon de tester le modèle avec les seuils de décision.
 
-### 1.3 Approche recommandée : Classification
+### 1.3 Approach recommandée : Classification
 
-Pour ce projet, nous utilisons une approche en **2 étapes** :
+Pour ce project, nous utilisons une approach en **2 étapes** :
 
-1. **Détecteur** : localise l'oiseau dans l'image (boîte englobante)
+1. **Détecteur** : localize l'oiseau dans l'image (boîte englobante)
 2. **Classifieur** : identifie l'espèce sur le recadrage de l'oiseau
 
-Cette approche offre plusieurs avantages :
+Cette approach offre plusieurs advantages :
+
 - Le détecteur apprend à localiser les oiseaux dans des scènes complexes
 - Le classifieur se concentre sur la distinction des espèces avec des images centrées
 - Le système est plus simple à évolver
@@ -54,7 +57,7 @@ Cette approche offre plusieurs avantages :
 
 Vous disposez d'environ **650 images par espèce**, ce qui est une bonne base pour démarrer.
 
-### 1.5 État réel du projet dans ce dépôt
+### 1.5 État réel du project dans ce dépôt
 
 Le dépôt contient déjà :
 
@@ -67,9 +70,10 @@ Le dépôt contient déjà :
 
 ## 2. Préparation de l'environnement
 
-### 2.1 Localisation du workspace
+### 2.1 Localization du workspace
 
 Le dépôt YOLOv5 se trouve ici :
+
 ```
 C:\Users\yanni\Desktop\Yolo\yolov5\
 ```
@@ -122,15 +126,15 @@ Avant l'entraînement, vous devez nettoyer votre dataset pour éliminer les imag
 
 Voici les types d'images à écarting :
 
-| Type | Raison |
-|------|--------|
-| Images floues | Confondent le modèle |
-| Images trop sombres / surexposées | Perte d'information |
-| Doublons exacts | Biaissent l'entraînement |
-| Quasi-doublons d'une rafale | Favorisent les données similaires |
-| Plusieurs oiseaux (classification) | Compliquent la classification |
-| Espèce incertaine | Introduction de bruit dans les labels |
-| Oiseau trop petit / coupé / masqué | Difficiles à classer |
+| Type                               | Raison                                |
+| ---------------------------------- | ------------------------------------- |
+| Images floues                      | Confondent le modèle                  |
+| Images trop sombres / surexposées  | Perte d'information                   |
+| Doublons exacts                    | Biaissent l'entraînement              |
+| Quasi-doublons d'une rafale        | Favorisent les données similaires     |
+| Plusieurs oiseaux (classification) | Compliquent la classification         |
+| Espèce incertaine                  | Introduction de bruit dans les labels |
+| Oiseau trop petit / coupé / masqué | Difficiles à classer                  |
 
 ### 3.3 Bonnes pratiques de nettoyage
 
@@ -154,9 +158,10 @@ C:\Users\yanni\Desktop\Yolo\dataset_oiseaux\      (copie nettoyée pour l'entra�
 Créez un fichier `scripts/clean_dataset.py` avec ce contenu :
 
 ```python
-from pathlib import Path
 import random
 import shutil
+from pathlib import Path
+
 import cv2
 
 # Configuration
@@ -183,10 +188,7 @@ def is_blurry(image_path: Path) -> bool:
 
 def list_images(folder: Path) -> list[Path]:
     """Liste toutes les images dans un dossier."""
-    return [
-        path for path in folder.iterdir()
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
-    ]
+    return [path for path in folder.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS]
 
 
 def copy_split(files: list[Path], split_name: str, class_name: str) -> None:
@@ -220,8 +222,8 @@ def main() -> None:
         val_count = int(total * VAL_RATIO)
 
         train_files = clean_images[:train_count]
-        val_files = clean_images[train_count:train_count + val_count]
-        test_files = clean_images[train_count + val_count:]
+        val_files = clean_images[train_count : train_count + val_count]
+        test_files = clean_images[train_count + val_count :]
 
         copy_split(train_files, "train", class_dir.name)
         copy_split(val_files, "validation", class_dir.name)
@@ -251,14 +253,15 @@ python scripts/clean_dataset.py
 ```
 
 Le script :
+
 - Détecte les images floues
 - Les supprime
-- Distribue les images propres : 70% train, 20% validation, 10% test
+- Distribute les images propres : 70% train, 20% validation, 10% test
 - Affiche un résumé par espèce
 
 ---
 
-## 4. Organisation des dossiers
+## 4. Organization des dossiers
 
 ### 4.1 Structure finale pour la classification
 
@@ -301,7 +304,7 @@ Après le nettoyage, vérifiez la structure avec PowerShell :
 ```powershell
 # Compter les images par espèce
 Get-ChildItem -Path "C:\Users\yanni\Desktop\Yolo\dataset_oiseaux\train\" -Directory | `
-  ForEach-Object { 
+  ForEach-Object {
     $count = (Get-ChildItem $_.FullName -File).Count
     Write-Host "$($_.Name): $count images"
   }
@@ -325,23 +328,23 @@ Si une espèce a beaucoup moins d'images, envisagez d'augmenter les données ou 
 
 YOLOv5 propose plusieurs tailles de modèles pour la classification :
 
-| Modèle | Taille | Vitesse | Précision | Recommandé pour |
-|--------|--------|---------|-----------|-----------------|
-| `yolov5n-cls.pt` | Très petit | Très rapide | Bonne | Webcam en temps réel |
-| `yolov5s-cls.pt` | Petit | Rapide | Très bonne | **Recommandé pour ce projet** |
-| `yolov5m-cls.pt` | Moyen | Modéré | Excellente | Serveur CPU/GPU |
-| `yolov5l-cls.pt` | Grand | Lent | Excellente | Serveurs puissants |
+| Modèle           | Taille     | Vitesse     | Précision  | Recommandé pour               |
+| ---------------- | ---------- | ----------- | ---------- | ----------------------------- |
+| `yolov5n-cls.pt` | Très petit | Très rapide | Bonne      | Webcam en temps réel          |
+| `yolov5s-cls.pt` | Petit      | Rapide      | Très bonne | **Recommandé pour ce project** |
+| `yolov5m-cls.pt` | Moyen      | Modéré      | Excellente | Serveur CPU/GPU               |
+| `yolov5l-cls.pt` | Grand      | Lent        | Excellente | Serveurs puissants            |
 
 ### 5.2 Paramètres d'entraînement expliqués
 
-| Paramètre | Valeur | Explication |
-|-----------|--------|-------------|
-| `--model` | `yolov5s-cls.pt` | Modèle de départ (poids pré-entraînés) |
-| `--data` | `dataset_oiseaux` | Dossier contenant les données (train/validation/test) |
-| `--epochs` | `20-50` | Nombre de passages sur l'ensemble d'entraînement |
-| `--img` | `224` | Taille des images (224x224 pixels pour classification) |
-| `--batch` | `32` | Nombre d'images traitées simultanément |
-| `--device` | `0` | GPU à utiliser (0 = GPU 0, ou `cpu` pour CPU) |
+| Paramètre  | Valeur            | Explication                                            |
+| ---------- | ----------------- | ------------------------------------------------------ |
+| `--model`  | `yolov5s-cls.pt`  | Modèle de départ (poids pré-entraînés)                 |
+| `--data`   | `dataset_oiseaux` | Dossier contenant les données (train/validation/test)  |
+| `--epochs` | `20-50`           | Nombre de passages sur l'ensemble d'entraînement       |
+| `--img`    | `224`             | Taille des images (224x224 pixels pour classification) |
+| `--batch`  | `32`              | Nombre d'images traitées simultanément                 |
+| `--device` | `0`               | GPU à utiliser (0 = GPU 0, ou `cpu` pour CPU)          |
 
 ### 5.3 Lancer l'entraînement
 
@@ -358,6 +361,7 @@ python classify/train.py `
 ```
 
 **Explications des arguments :**
+
 - `--model yolov5s-cls.pt` : modèle petit (bon compromis vitesse/précision)
 - `--data` : dossier dataset à la racine du dépôt (`dataset_oiseaux`)
 - `--epochs 30` : 30 passages sur les données (augmentez à 50-100 si le dataset est petit)
@@ -378,6 +382,7 @@ Epoch  GPU_mem  img_size   loss   top1   top5  val_loss  top1   top5
 ```
 
 **Interprétation :**
+
 - `loss` : erreur d'entraînement (doit diminuer)
 - `top1` : pourcentage de bonnes classifications (doit augmenter)
 - `val_loss` : erreur de validation
@@ -428,19 +433,20 @@ python classify/predict.py `
     --uncertainty-thres 0.50
 ```
 
-Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`). Avec les seuils projet actuels, `INCERTITUDE` correspond à une confiance comprise entre 50 % et 60 %.
+Le modèle affichera la classe prédite, la confiance et le statut métier (`BDD`, `INCERTITUDE` ou `HORS_BDD`). Avec les seuils project actuels, `INCERTITUDE` correspond à une confiance comprise entre 50 % et 60 %.
 
 ### 6.3 Interprétation des résultats
 
 Après la validation, vérifiez :
 
-| Métrique | Acceptable | Bon | Excellent |
-|----------|-----------|------|----------|
-| Top-1 Accuracy | > 80% | > 90% | > 95% |
-| Top-5 Accuracy | > 95% | > 98% | > 99% |
-| Loss de validation | < 1.0 | < 0.5 | < 0.2 |
+| Métrique           | Acceptable | Bon   | Excellent |
+| ------------------ | ---------- | ----- | --------- |
+| Top-1 Accuracy     | > 80%      | > 90% | > 95%     |
+| Top-5 Accuracy     | > 95%      | > 98% | > 99%     |
+| Loss de validation | < 1.0      | < 0.5 | < 0.2     |
 
 Si les résultats ne sont pas satisfaisants :
+
 1. Augmentez le nombre d'epochs
 2. Augmentez la taille du batch
 3. Améliorez la qualité du dataset
@@ -451,7 +457,7 @@ Si les résultats ne sont pas satisfaisants :
 Pour le test de production final :
 
 1. Créez un ensemble de **1000 images variées** :
-    - Images des 4 classes cibles
+   - Images des 4 classes cibles
    - Images d'autres espèces (pour tester les faux positifs)
    - Images non vues pendant l'entraînement
 
@@ -468,11 +474,11 @@ python classify/predict.py `
 ```
 
 3. Mesurez :
-    - Taux de bonne identification pour les 4 classes
+   - Taux de bonne identification pour les 4 classes
    - Taux de faux positifs sur les autres espèces
-    - Confiance moyenne par espèce
-    - Taux d'incertitude
-    - Taux de rejet hors BDD
+   - Confiance moyenne par espèce
+   - Taux d'incertitude
+   - Taux de rejet hors BDD
 
 ---
 
@@ -485,14 +491,14 @@ Le système final fonctionne ainsi :
 ```
 Capture image
     ↓
-Détection de l'oiseau (localisation)
+Détection de l'oiseau (localization)
     ↓
 Recadrage de la zone détectée
     ↓
 Classification de l'espèce
     ↓
 Confiance > seuil ?
-    ├─ OUI → Lecture du son correspondant
+    ├─ OUI → Lecture du son correspondent
     └─ NON → Pas de son
     ↓
 Enregistrement du résultat
@@ -536,7 +542,7 @@ confidence_threshold: 0.75
 repeat_delay: 3.0
 ```
 
-### 7.3 Organisation des dossiers pour le déploiement
+### 7.3 Organization des dossiers pour le déploiement
 
 ```
 project/
@@ -569,48 +575,46 @@ project/
 Créez `app/inference.py` :
 
 ```python
-import cv2
 import random
-import torch
-from pathlib import Path
-import pygame
-import yaml
 from typing import Optional
+
+import cv2
+import pygame
+import torch
+import yaml
+
 
 class BirdDetectionApp:
     def __init__(self, weights_path: str, config_path: str):
-        """
-        Initialise l'application.
-        
+        """Initialize l'application.
+
         Args:
             weights_path: chemin vers best.pt
             config_path: chemin vers birds_sounds.yaml
         """
         # Charger le modèle
-        self.model = torch.hub.load("ultralytics/yolov5", "custom", 
-                                     path=weights_path, force_reload=False)
-        
+        self.model = torch.hub.load("ultralytics/yolov5", "custom", path=weights_path, force_reload=False)
+
         # Charger la configuration
         with open(config_path) as f:
             self.config = yaml.safe_load(f)
-        
+
         self.class_names = list(self.config.keys())[:-2]  # Exclure les paramètres
         self.threshold = self.config.get("confidence_threshold", 0.75)
         self.repeat_delay = self.config.get("repeat_delay", 3.0)
-        
+
         # Initialiser pygame pour l'audio
         pygame.mixer.init()
-        
+
         # Historique des derniers sons joués
         self.last_played = {}
-    
+
     def predict(self, image_path: str) -> Optional[str]:
-        """
-        Prédit la classe d'un oiseau dans une image.
-        
+        """Prédit la classe d'un oiseau dans une image.
+
         Args:
             image_path: chemin vers l'image
-        
+
         Returns:
             nom de l'espèce détectée, ou None
         """
@@ -619,68 +623,67 @@ class BirdDetectionApp:
         if img is None:
             print(f"Erreur : impossible de charger {image_path}")
             return None
-        
+
         # Inférence
         results = self.model(img)
         predictions = results.pandas().xyxy[0]
-        
+
         if len(predictions) == 0:
             print("Aucun oiseau détecté")
             return None
-        
+
         # Prendre la détection avec la plus haute confiance
         best_pred = predictions.iloc[0]
         class_id = int(best_pred["class"])
         confidence = float(best_pred["confidence"])
         predicted_class = self.class_names[class_id]
-        
+
         print(f"Espèce détectée : {predicted_class}")
         print(f"Confiance : {confidence:.2%}")
-        
+
         return predicted_class if confidence >= self.threshold else None
-    
+
     def play_sound(self, species: str) -> None:
-        """
-        Joue un son aléatoire pour une espèce.
-        
+        """Joue un son aléatoire pour une espèce.
+
         Args:
             species: nom de l'espèce
         """
         if species not in self.config:
             print(f"Espèce inconnue : {species}")
             return
-        
+
         sounds = self.config[species]
         sound_file = random.choice(sounds)
-        
+
         try:
             pygame.mixer.music.load(sound_file)
             pygame.mixer.music.play()
             print(f"Lecture : {sound_file}")
         except Exception as e:
             print(f"Erreur audio : {e}")
-    
+
     def process_image(self, image_path: str) -> None:
-        """
-        Traite une image : détecte, classifie et joue le son.
-        
+        """Traite une image : détecte, classifie et joue le son.
+
         Args:
             image_path: chemin vers l'image
         """
         species = self.predict(image_path)
-        
+
         if species:
             self.play_sound(species)
         else:
             print("Pas de son joué (confiance insuffisante ou espèce inconnue)")
 
-# Utilisation
+
+# Utilization
 if __name__ == "__main__":
     app = BirdDetectionApp(
         weights_path=r"C:\Users\yanni\Desktop\Yolo\models\best.pt",
-        config_path=r"C:\Users\yanni\Desktop\Yolo\config\birds_sounds.yaml"
+        config_path=r"C:\Users\yanni\Desktop\Yolo\config\birds_sounds.yaml",
     )
-    
+
     # Tester sur une image
     app.process_image(r"C:\chemin\vers\image_test.jpg")
 ```
@@ -691,7 +694,8 @@ if __name__ == "__main__":
 
 Avant de lancer l'entraînement, vérifiez tous ces points :
 
-### Environnement
+### Environment
+
 - [ ] Python 3.8+ installé
 - [ ] PyTorch >= 1.8 installé (`python -c "import torch"`)
 - [ ] Venv activé (`.venv\Scripts\Activate.ps1`)
@@ -699,6 +703,7 @@ Avant de lancer l'entraînement, vérifiez tous ces points :
 - [ ] GPU détecté (optionnel : `python -c "import torch; print(torch.cuda.is_available())"`)
 
 ### Dataset
+
 - [ ] Dossier `dataset_raw/` contient les images brutes
 - [ ] Dossier `dataset_oiseaux/` avec structure train/validation/test
 - [ ] Guide rapide disponible dans [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md)
@@ -709,22 +714,26 @@ Avant de lancer l'entraînement, vérifiez tous ces points :
 - [ ] Minimum 300-400 images par espèce en train
 
 ### Dossiers et fichiers
+
 - [ ] `dataset_oiseaux/train/` existe et contient des images
 - [ ] `dataset_oiseaux/validation/` existe et contient des images
 - [ ] `dataset_oiseaux/test/` existe (optionnel mais recommandé)
 
 ### Noms de classes
+
 - [ ] Tous les noms de classes sont en minuscules
 - [ ] Aucun accent ni caractère spécial dans les noms
 - [ ] Les 4 classes sont : heron, balbuzard, mouette_goeland, cormoran
 
 ### Configuration d'entraînement
+
 - [ ] Paramètres d'entraînement adaptés à votre matériel
 - [ ] Batch size approprié (réduisez si erreur mémoire)
 - [ ] Nombre d'epochs suffisant (30-50 minimum)
 - [ ] Modèle de départ choisi (yolov5s-cls recommandé)
 
 ### Sons et configuration (optionnel au départ)
+
 - [ ] Dossier `sounds/` créé
 - [ ] Sous-dossiers par espèce
 - [ ] Fichiers audio en format compatible (.mp3, .wav)
@@ -735,25 +744,30 @@ Avant de lancer l'entraînement, vérifiez tous ces points :
 ## Résumé des étapes clés
 
 ### Phase 1 : Préparation (1-2 heures)
+
 1. Clonez/préparez le dépôt YOLOv5
 2. Activez l'environnement virtuel
 3. Installez les dépendances
 
 ### Phase 2 : Données (2-4 heures)
+
 4. Nettoyez manuellement un échantillon du dataset
 5. Exécutez le script de nettoyage automatique
 6. Vérifiez la structure et l'équilibre
 
 ### Phase 3 : Entraînement (1-8 heures selon GPU)
+
 7. Lancez l'entraînement avec les paramètres appropriés
 8. Suivez les métriques (loss, accuracy)
 
 ### Phase 4 : Validation (30 minutes)
+
 9. Validez sur le dataset de validation
 10. Évaluez les résultats
 11. Ajustez si nécessaire
 
 ### Phase 5 : Déploiement (optionnel)
+
 12. Organisez la structure finale
 13. Créez les scripts d'inférence
 14. Testez sur nouvelles images
@@ -787,22 +801,22 @@ python classify/predict.py --weights runs/train-cls/exp/weights/best.pt --source
 
 ## Troubleshooting
 
-| Problème | Solution |
-|----------|----------|
-| `ModuleNotFoundError: No module named 'torch'` | Réinstallez PyTorch : `pip install torch` |
-| Erreur CUDA : `CUDA out of memory` | Réduisez le batch size : `--batch 16` |
-| Images floues non détectées | Abaissez `BLUR_THRESHOLD` dans le script |
-| Modèle n'apprend pas (loss élevée) | Augmentez epochs, vérifiez les labels |
-| Accuracy faible | Améliorez le dataset, essayez un plus grand modèle |
+| Problème                                       | Solution                                           |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `ModuleNotFoundError: No module named 'torch'` | Réinstallez PyTorch : `pip install torch`          |
+| Erreur CUDA : `CUDA out of memory`             | Réduisez le batch size : `--batch 16`              |
+| Images floues non détectées                    | Abaissez `BLUR_THRESHOLD` dans le script           |
+| Modèle n'apprend pas (loss élevée)             | Augmentez epochs, vérifiez les labels              |
+| Accuracy faible                                | Améliorez le dataset, essayez un plus grand modèle |
 
 ---
 
-## Ressources supplémentaires
+## Resources supplémentaires
 
 - [Documentation YOLOv5](https://docs.ultralytics.com/yolov5/)
 - [Notebook tutorial](../tutorial.ipynb)
 - [Guide classification](../classify/tutorial.ipynb)
-- [GUIDE_OISEAUX.md](../GUIDE_OISEAUX.md) - Documentation détaillée du projet
+- [GUIDE_OISEAUX.md](../GUIDE_OISEAUX.md) - Documentation détaillée du project
 
 ---
 
