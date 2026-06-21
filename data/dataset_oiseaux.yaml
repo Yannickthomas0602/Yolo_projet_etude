@@ -2,4 +2,4 @@ train: ../dataset_oiseaux/train
 val: ../dataset_oiseaux/train
 test: ../dataset_oiseaux/test
 nc: 4
-names: ['balbuzard', 'heron', 'cormoran', 'mouette_goeland']
+names: ["balbuzard", "heron", "cormoran", "mouette_goeland"]

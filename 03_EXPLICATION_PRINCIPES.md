@@ -1,24 +1,23 @@
- # Principes expliqués : IA, classification et détection vectorielle
+# Principes expliqués : IA, classification et détection vectorielle
 
-Ce document donne une explication claire et pédagogique des principes qui sous-tendent le système : comment fonctionne une IA de reconnaissance d'images, ce que sont les "embeddings" (vecteurs visuels) et comment on les utilise pour rechercher des images semblables.
+Ce document donne une explication claire et pédagogique des principes qui sous-tendent le système : comment fonctionne une IA de reconnaissance d'images, ce que sont les "embeddings" (vecteurs visuels) et comment on les utilize pour rechercher des images semblables.
 
 ## Ordre de lecture recommandé
 
-Pour comprendre le projet de la manière la plus pédagogique, voici l'ordre conseillé des documents (du premier au dernier) :
+Pour comprendre le project de la manière la plus pédagogique, voici l'ordre conseillé des documents (du premier au dernier) :
 
 1. GUIDE_OISEAUX.md — Présentation utilisateur et bonnes pratiques pour les images
-2. COMMENT_FONCTIONNE_IA_YOLO.md — Explication simplifiée du fonctionnement de YOLO pour ce projet
+2. COMMENT_FONCTIONNE_IA_YOLO.md — Explication simplifiée du fonctionnement de YOLO pour ce project
 3. EXPLICATION_PRINCIPES.md — Concepts théoriques (embeddings, similarité, FAISS)
 4. MODE_CAMERA.md — Mode caméra : capture, thread, sauvegarde et UI
 5. MODE_VECTERIEL.md — Mode vectoriel : CLIP + FAISS, indexation et recherche
 6. SETUP_ENTRAINEMENT_OISEAUX.md — Instructions pour préparer et lancer l'entraînement
 7. JOURNAL_PROJET_OISEAUX.md — Journal et historique des modifications (dernier à lire)
 
-
-## 1) Apprendre à reconnaître : entraînement vs utilisation
+## 1) Apprendre à reconnaître : entraînement vs utilization
 
 - Entraînement : on montre à l'ordinateur beaucoup d'exemples (photos étiquetées) et on le laisse ajuster des paramètres internes pour réduire ses erreurs. C'est la phase longue et coûteuse, réalisée une seule fois.
-- Inférence (ou utilisation) : une fois entraîné, le modèle peut rapidement analyser une nouvelle image et proposer une prédiction. C'est ce qui se passe dans `analyse_oiseaux.py` quand on lui donne une photo.
+- Inférence (ou utilization) : une fois entraîné, le modèle peut rapidement analyzer une nouvelle image et proposer une prédiction. C'est ce qui se passe dans `analyse_oiseaux.py` quand on lui donne une photo.
 
 Analogie : l'entraînement, c'est comme apprendre à un ornithologue en lui montrant des albums photo ; l'inférence, c'est l'ornithologue qui donne son avis quand on lui montre une nouvelle photo.
 
@@ -28,7 +27,7 @@ Analogie : l'entraînement, c'est comme apprendre à un ornithologue en lui mont
 - À la fin, il produit un score pour chaque espèce possible (par ex. héron : 0.85, cormoran : 0.10, autre : 0.05).
 - Le score le plus élevé devient la prédiction (top‑1). La "confiance" exprimée est ce score.
 
-Important : ce score n'est pas une certitude absolue, mais une indication statistique basée sur ce que le modèle a appris.
+Important : ce score n'est pas une certitude absolute, mais une indication statistique basée sur ce que le modèle a appris.
 
 ## 3) Pourquoi on a besoin de seuils (BDD / INCERTITUDE / HORS_BDD)
 
@@ -41,8 +40,8 @@ Ces règles permettent d'automatiser la gestion et d'éviter des faux positifs t
 ## 4) Embeddings et recherche par similarité (principe)
 
 - Embedding : on convertit une image en une liste de nombres (un vecteur). Ce vecteur capture l'apparence globale de l'image.
-- Normalisation : on met ces vecteurs sur la même échelle (important pour comparer correctement).
-- Mesure de similarité : on compare deux vecteurs avec une opération mathématique (produit scalaire / cosinus). Plus le résultat est proche de 1, plus les images sont similaires.
+- Normalization : on met ces vecteurs sur la même échelle (important pour comparer correctement).
+- Measure de similarité : on compare deux vecteurs avec une opération mathématique (produit scalaire / cosinus). Plus le résultat est proche de 1, plus les images sont similaires.
 
 Analogie : imagine des fiches où chaque fiche a des cases remplies (couleurs dominantes, formes...). Deux fiches proches signifient photos proches.
 
@@ -55,19 +54,19 @@ Workflow résumé : construire l'index (une opération hors ligne), puis pour ch
 
 ## 6) Pourquoi normaliser et utiliser produit intérieur (inner product)
 
-- Si on normalise les vecteurs (longueur = 1), le produit intérieur devient équivalent au cosinus d'angle, une mesure de similarité usuelle et efficace.
+- Si on normalize les vecteurs (longueur = 1), le produit intérieur devient équivalent au cosinus d'angle, une measure de similarité usuelle et efficace.
 - FAISS peut utiliser ce produit intérieur pour rendre les recherches rapides et précises.
 
 ## 7) Comment combiner classification et similarité (idée pratique)
 
 - Règle simple : si le classifieur est incertain (score faible) mais le voisin le plus proche a une similarité élevée, on peut considérer la prédiction comme "probable" et la passer en revue prioritairement.
-- Cette combinaison n'est pas magique : elle améliore certains cas (ré-utilisation d'exemples) mais peut aussi renforcer des biais si la base contient des erreurs.
+- Cette combination n'est pas magique : elle améliore certains cas (ré-utilisation d'exemples) mais peut aussi renforcer des biais si la base contient des erreurs.
 
 ## 8) Limitations et précautions
 
 - Domaine : un modèle entraîné sur un certain type de photos peut mal se comporter sur des images très différentes (luminosité, angle, espèces non présentes).
-- Biais : si les exemples d'entraînement sont déséquilibrés, les résultats seront biaisés.
-- Similarité visuelle ne remplace pas l'étiquette : deux images peuvent se ressembler sans représenter la même espèce (contexte, posture).
+- Biais : si les examples d'entraînement sont déséquilibrés, les résultats seront biaisés.
+- Similarité visuelle ne replace pas l'étiquette : deux images peuvent se ressembler sans représenter la même espèce (contexte, posture).
 
 ## 9) Points pratiques à retenir
 
@@ -77,11 +76,11 @@ Workflow résumé : construire l'index (une opération hors ligne), puis pour ch
 
 ---
 
-Si tu veux, je peux transformer cette explication en une infographie simple (3 blocs : caméra → IA → recherche vectorielle) ou écrire une version très courte pour un public non spécialiste (1 page).
+Si tu veux, je peux transformer cette explication en une infographie simple (3 blocks : caméra → IA → recherche vectorielle) ou écrire une version très courte pour un public non spécialiste (1 page).
 
 # Guide d'architecture — entraînement, tests, sons, index vectoriel
 
-Ce document décrit une architecture recommandée pour organiser le projet : entraînement, jeux de données, tests, gestion des fichiers audio, index vectoriel et intégration continue. Il vise la clarté, la reproductibilité et la maintenance.
+Ce document décrit une architecture recommandée pour organizer le project : entraînement, jeux de données, tests, gestion des fichiers audio, index vectoriel et intégration continue. Il vice la clarté, la reproductibilité et la maintenance.
 
 ## 1. Arborescence recommandée
 
