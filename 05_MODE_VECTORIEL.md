@@ -1,7 +1,6 @@
-
 # Mode vectoriel : CLIP + FAISS
 
-Ce document explique comment le projet utilise CLIP pour produire des embeddings et FAISS pour indexer et rechercher des images similaires.
+Ce document explique comment le project utilize CLIP pour produire des embeddings et FAISS pour indexer et rechercher des images similaires.
 
 ## Principe
 
@@ -11,10 +10,10 @@ Ce document explique comment le projet utilise CLIP pour produire des embeddings
 
 ## 1) Prérequis
 
-- Installer `faiss` (ou `faiss-cpu`) et `transformers`/`clip` selon ton environnement.
+- Installer `faiss` (ou `faiss-cpu`) et `transformers`/`clip` selon ton environment.
 - Avoir un dossier `vectors/` où seront écrits `index.faiss` et `mapping.json`.
 
-Exemples d'installation (Linux/Windows/GPU) :
+Examples d'installation (Linux/Windows/GPU) :
 
 ```bash
 pip install faiss-cpu
@@ -45,22 +44,22 @@ python vector_index.py --build --sources dataset_oiseaux enregistrements --out v
 
 ## 3) Format de `mapping.json`
 
-Le fichier `mapping.json` associe chaque identifiant de vecteur (int) au chemin de l'image correspondante ainsi qu'à des métadonnées utiles (classe, timestamp, provenance). Exemple :
+Le fichier `mapping.json` associe chaque identifiant de vecteur (int) au chemin de l'image correspondante ainsi qu'à des métadonnées utiles (classe, timestamp, provenance). Example :
 
 ```json
 {
-	"0": {"path": "dataset_oiseaux/train/heron/img001.jpg", "class": "heron"},
-	"1": {"path": "enregistrements/heron/2026-05-18_14-14-46.jpg", "class": "heron"}
+  "0": { "path": "dataset_oiseaux/train/heron/img001.jpg", "class": "heron" },
+  "1": { "path": "enregistrements/heron/2026-05-18_14-14-46.jpg", "class": "heron" }
 }
 ```
 
-## 4) Utilisation en inference
+## 4) Utilization en inference
 
 - Charger `index.faiss` et `mapping.json` au démarrage si disponibles.
 - Pour chaque image, calculer l'embedding via CLIP, normaliser, puis demander les K voisins via FAISS (`index.search`).
 - Combiner le résultat FAISS (similarité) et la sortie du classifieur YOLO pour améliorer la décision.
 
-Exemples pratiques :
+Examples pratiques :
 
 - Si YOLO renvoie une classe `incertain` mais FAISS trouve un voisin très proche (sim > 0.8), considérer cet élément pour revue humaine prioritaire.
 - Si FAISS trouve des voisins multiples avec la même classe, renforcer la confiance locale sur cette classe.
@@ -70,19 +69,19 @@ Exemples pratiques :
 - L'index doit être reconstruit périodiquement si de nouvelles images significatives arrivent (ex: nouvel enregistrement).
 - Alternativement, utiliser un index FAISS qui supporte l'ajout dynamique si la latence de construction complète est trop élevée.
 
-## 6) Parametres conseils
+## 6) Parameters conseils
 
-- `K=5` voisins par defaut.
+- `K=5` voisins par default.
 - `normalize=True` (L2) avant insertion.
-- `index_type=IndexFlatIP` si l'on utilise inner product.
+- `index_type=IndexFlatIP` si l'on utilize inner product.
 - `nprobe` plus eleve pour des recherches plus precisess mais plus lentes (s'applique aux indexes quantifies).
 
-## 7) Exemple d'API d'appel (pseudocode)
+## 7) Example d'API d'appel (pseudocode)
 
 ```python
-from vector_index import load_index, query
+from vector_index import load_index
 
-index, mapping = load_index('vectors/index.faiss', 'vectors/mapping.json')
+index, mapping = load_index("vectors/index.faiss", "vectors/mapping.json")
 vec = clip_encode(image)
 vec = vec / np.linalg.norm(vec)
 ids, scores = index.search(vec.reshape(1, -1), k=5)
@@ -92,15 +91,14 @@ results = [mapping[str(i)] for i in ids[0]]
 ## 8) Clauses et limitations
 
 - FAISS stocke des vecteurs en memoire; pour des corpus enormes, il faut envisager des indexes compresses ou une architecture distribuée.
-- L'usage de CLIP a des biais selon le training data. Valide les resultats sur ton jeu d'images local.
+- L'usage de CLIP a des biais selon le training data. Valid les resultats sur ton jeu d'images local.
 
 ## 9) Intégration dans `analyse_oiseaux.py`
 
 1. Charger l'index s'il existe lors du demarrage du script.
-2. Ajouter une option `--vector-interval` pour controler la frequence de calcul des embeddings en mode camera.
+2. Ajouter une option `--vector-interval` pour controller la frequency de calcul des embeddings en mode camera.
 3. Ajouter un overlay dans la fenetre video pour afficher les meilleurs voisins et scores.
 
 ---
 
-Si tu veux, je peux écrire `vector_index.py` (ou l'améliorer) pour ton jeu de donnees et fournir un exemple complet de pipeline de construction et de requete.
-
+Si tu veux, je peux écrire `vector_index.py` (ou l'améliorer) pour ton jeu de donnees et fournir un example complete de pipeline de construction et de requete.

@@ -2,7 +2,8 @@
 
 Ce document sert de procédure courte pour lancer le modèle d'oiseaux, tester une image et comprendre le résultat métier.
 
-Le projet actuel repose sur 4 classes :
+Le project actuel repose sur 4 classes :
+
 - balbuzard
 - heron
 - cormoran
@@ -39,13 +40,14 @@ python classify/predict.py `
 ```
 
 Résultat attendu :
-- BDD si la confiance top-1 est supérieure ou égale à 60 %, 
+
+- BDD si la confiance top-1 est supérieure ou égale à 60 %,
 - INCERTITUDE si la confiance top-1 est entre 50 % et 60 %,
 - HORS_BDD si la confiance top-1 est inférieure à 50 %.
 
 Important : dans [analyse_oiseaux.py](analyse_oiseaux.py), la décision métier est basée uniquement sur le score top-1.
 
-Les résultats annotés sont enregistrés dans runs/predict-cls/exp*/.
+Les résultats annotés sont enregistrés dans runs/predict-cls/exp\*/.
 
 ## 3. Tester un dossier entier
 
@@ -60,15 +62,15 @@ python classify/predict.py `
   --uncertainty-thres 0.50
 ```
 
-Si ton dossier contient des sous-dossiers de classes, tu peux aussi lancer [analyse_oiseaux.py](analyse_oiseaux.py) pour analyser toute l'arborescence d'un coup et afficher le graphique automatiquement.
+Si ton dossier contient des sous-dossiers de classes, tu peux aussi lancer [analyse_oiseaux.py](analyse_oiseaux.py) pour analyzer toute l'arborescence d'un coup et afficher le graphique automatiquement.
 
-Note : en mode dossier, `analyse_oiseaux.py` n'enregistre pas les images annotées une par une (utilise `--nosave` pour accélérer l'analyse) ; il génère un résumé JSON et des graphiques professionnels dans le dossier `results/`.
+Note : en mode dossier, `analyse_oiseaux.py` n'enregistre pas les images annotées une par une (utilize `--nosave` pour accélérer l'analyse) ; il génère un résumé JSON et des graphiques professionnels dans le dossier `results/`.
 
 Si tu veux utiliser la camera de l'ordinateur et comprendre où sont rangées les images selon leur statut, lis aussi [MODE_CAMERA_OISEAUX.md](MODE_CAMERA_OISEAUX.md).
 
-## 3.2 Synchroniser automatiquement sur Azure (optionnel)
+## 3.2 Synchronizer automatiquement sur Azure (optionnel)
 
-Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque détection vers Azure Blob Storage si les variables d'environnement suivantes sont définies. Le script charge automatiquement un fichier local [`.env`](.env) s'il est présent à la racine du projet.
+Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque détection vers Azure Blob Storage si les variables d'environnement suivantes sont définies. Le script charge automatiquement un fichier local [`.env`](.env) s'il est présent à la racine du project.
 
 - `AZURE_STORAGE_CONN`
 - `AZURE_IOT_HUB_CONN`
@@ -76,7 +78,7 @@ Le script [analyse_oiseaux.py](analyse_oiseaux.py) peut aussi pousser chaque dé
 - `AZURE_JSON_CONTAINER` (défaut : `archives-json`)
 - `AZURE_APPAREIL` (défaut : `Piscine-Rennes-01`)
 
-Exemple PowerShell :
+Example PowerShell :
 
 ```powershell
 $env:AZURE_STORAGE_CONN = "DefaultEndpointsProtocol=https;..."
@@ -92,18 +94,18 @@ Le téléversement envoie maintenant deux blobs liés par le même timestamp :
 - l'image dans `archives-photos`
 - le JSON descriptif dans `archives-json`
 
-Le JSON contient notamment : `appareil`, `oiseau`, `confiance`, `action`, `heure` (date + heure), `timestamp`, `statut`.
+Le JSON contient notamment : `apparel`, `oiseau`, `confiance`, `action`, `heure` (date + heure), `timestamp`, `statut`.
 Le champ `action` dépend du statut métier :
 
 - `BDD` -> `bonne effarouchement`
-- `INCERTITUDE` -> `enffarouchement par defaut`
+- `INCERTITUDE` -> `enffarouchement par default`
 - `autre` / `HORS_BDD` -> `pas d'effarouchement`
 
 ## 3.1 Ajouter une classe "autre" et ré-entraîner (optionnel)
 
 Si tu veux que le modèle apprenne explicitement une classe `autre` pour représenter les espèces hors BDD, suis ces étapes :
 
-1. Rassemble des images d'espèces hors BDD dans un dossier, par exemple `C:\Users\yanni\Desktop\autres_images`.
+1. Rassemble des images d'espèces hors BDD dans un dossier, par example `C:\Users\yanni\Desktop\autres_images`.
 2. Lance le script d'import (il va copier et répartir les images dans `dataset_oiseaux`):
 
 ```powershell
@@ -124,7 +126,7 @@ python train.py `
   --device 0
 ```
 
-Après entraînement, remplace `--weights` dans tes commandes d'analyse par le nouveau jeu de poids généré dans `runs/train-cls/exp*/weights/best.pt`.
+Après entraînement, replace `--weights` dans tes commandes d'analyse par le nouveau jeu de poids généré dans `runs/train-cls/exp*/weights/best.pt`.
 
 ## 4. Relancer l'entraînement
 
@@ -140,7 +142,7 @@ python classify/train.py `
   --device 0
 ```
 
-Les poids seront enregistrés dans runs/train-cls/exp*/weights/.
+Les poids seront enregistrés dans runs/train-cls/exp\*/weights/.
 
 ## 5. Où regarder en cas de doute
 
@@ -148,4 +150,4 @@ Les poids seront enregistrés dans runs/train-cls/exp*/weights/.
 - Détails d'installation et d'entraînement : [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md)
 - Historique des décisions : [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md)
 - Logique métier BDD / INCERTITUDE / HORS_BDD : [classify/predict.py](classify/predict.py)
- - Recherche visuelle (vectorielle) : [MODE_VECTORIEL.md](MODE_VECTORIEL.md)
+- Recherche visuelle (vectorielle) : [MODE_VECTORIEL.md](MODE_VECTORIEL.md)

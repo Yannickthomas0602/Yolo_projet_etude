@@ -58,9 +58,9 @@ YOLOv5:
 IF/ELSE = Apprendre par cœur
   "Si tu vois un bec long et gris, c'est un héron"
   ↓
-  Ça marche sur les exemples qu'on a prévu
+  Ça marche sur les examples qu'on a prévu
   Ça échoue sur les cas imprévus
-  
+
 DEEP LEARNING = Apprendre à reconnaître
   "Regarde 650 hérons différents:
    - Héron gris, héron brun, héron blanc
@@ -77,16 +77,16 @@ DEEP LEARNING = Apprendre à reconnaître
 
 ## 1. Les Fondamentaux : Du Neurone au Réseau de Neurones
 
-### 1.1 Le Neurone Artificiel (Perceptron)
+### 1.1 Le Neurone Artificial (Perceptron)
 
-Un neurone artificiel est la brique élémentaire du deep learning :
+Un neurone artificial est la brique élémentaire du deep learning :
 
 ```
 Entrées: x1, x2, x3, ... xn
          ↓    ↓    ↓
       [w1] [w2] [w3]  ← Poids (paramètres apprenables)
          \    |    /
-          \ ⊕ (somme pondérée + biais)
+          \ ⊕ (some pondérée + biais)
            \|/
           activation (f)
             ↓
@@ -94,16 +94,18 @@ Entrées: x1, x2, x3, ... xn
 ```
 
 **Formule mathématique :**
+
 ```
 y = f(w₁·x₁ + w₂·x₂ + w₃·x₃ + b)
 ```
 
 où :
+
 - **w** = poids (weights) - les paramètres que le modèle apprend
 - **b** = biais (bias) - un décalage numérique
-- **f** = fonction d'activation (ReLU, Sigmoid, etc.)
+- **f** = function d'activation (ReLU, Sigmoid, etc.)
 
-### 1.2 L'Apprentissage : Ajustement des Poids
+### 1.2 L'Apprentissage : Adjustment des Poids
 
 Le modèle **ne sait pas comment faire au départ**. Pendant l'entraînement :
 
@@ -126,11 +128,12 @@ Connecter chaque pixel à chaque neurone = **explosion des paramètres** → imp
 ### 2.2 Solution : Les Convolutions
 
 Une **convolution** est une opération mathématique qui :
+
 1. Glisse un petit filtre sur l'image
 2. Détecte des motifs locaux (arêtes, formes, textures)
 3. Réduit drastiquement le nombre de paramètres
 
-**Exemple simple :**
+**Example simple :**
 
 ```
 Image originale (640×640×3)
@@ -143,7 +146,7 @@ Image réduite (320×320×32)
          ↓
 Image réduite (160×160×64)
          ↓
-[Conv 3×3 avec 128 filtres] ← Détecte: objets simples
+[Conv 3×3 avec 128 filtres] ← Détecte: objects simples
          ↓
 Image réduite (80×80×128)
          ↓
@@ -157,14 +160,17 @@ Prédiction (classe, confiance)
 ### 2.3 Hiérarchie d'Apprentissage
 
 Les premières couches apprennent des motifs **simples** :
+
 - Arêtes (horizontales, verticales)
 - Gradients de couleurs
 
 Les couches intermédiaires apprennent des motifs **complexes** :
+
 - Formes (carrés, cercles)
 - Textures (plumes, écailles)
 
 Les dernières couches apprennent des motifs **sémantiques** :
+
 - Parties d'oiseaux (bec, ailes, queue)
 - Oiseaux entiers (héron, balbuzard, mouette)
 
@@ -174,21 +180,21 @@ Les dernières couches apprennent des motifs **sémantiques** :
 
 ### 3.1 YOLO = "You Only Look Once"
 
-Contrairement aux anciens systèmes qui détectaient objet par objet, **YOLO traite l'image UNE SEULE FOIS** :
+Contrairement aux anciens systèmes qui détectaient object par object, **YOLO traite l'image UNE SEULE FOIS** :
 
 ```
 Image d'entrée
      ↓
 Backbone (extraction de features) ← Convolutions
      ↓
-Neck (fusion multi-échelle) ← Pyramide de résolution
+Neck (fusion multi-échelle) ← Pyramid de résolution
      ↓
 Head (prédictions) ← Détection + Classification
      ↓
 Résultats: [boîte englobante, confiance, classe]
 ```
 
-### 3.2 Les 3 Composants de YOLOv5
+### 3.2 Les 3 Components de YOLOv5
 
 #### **A. Backbone (Colonne vertébrale)**
 
@@ -196,7 +202,7 @@ Extrait des représentations de l'image à différentes résolutions :
 
 ```
 Image 640×640×3
-     ↓ Conv + ReLU (blocs résidu)
+     ↓ Conv + ReLU (blocks résidu)
 Features 320×320×64
      ↓ Conv + ReLU
 Features 160×160×128
@@ -208,14 +214,14 @@ C'est l'étape où le réseau "regarde" l'image et crée une représentation int
 
 #### **B. Neck (Fusion multi-échelle)**
 
-Combine les informations de différentes résolutions pour détecter des objets de toutes tailles :
+Combine les information de différentes résolutions pour détecter des objects de toutes tailles :
 
 ```
-        Features 80×80 (petits objets, haute résolution)
+        Features 80×80 (petits objects, haute résolution)
               ↓ ↖︎
-        Features 40×40 (moyens objets)
+        Features 40×40 (moyens objects)
               ↓ ↖︎
-        Features 20×20 (grands objets, basse résolution)
+        Features 20×20 (grands objects, basse résolution)
 ```
 
 Avantage : détecte les petits oiseaux ET les grands oiseaux.
@@ -223,6 +229,7 @@ Avantage : détecte les petits oiseaux ET les grands oiseaux.
 #### **C. Head (Tête de prédiction)**
 
 Prédit pour chaque position de la grille :
+
 - **Boîte englobante** (x, y, largeur, hauteur) → où est l'oiseau
 - **Confiance** → est-ce vraiment un oiseau (0-100%)
 - **Probabilités de classe** → quelle espèce (Héron=82%, Balbuzard=15%, ...)
@@ -246,17 +253,17 @@ Grille 80×80 : 6400 positions
    → Créer une représentation hiérarchique des features
    ↓
 4. Passer dans le Neck
-   → Fusionner les informations multi-échelle
+   → Fusionner les information multi-échelle
    ↓
 5. Passer dans le Head
-   → Prédire: 70,400 candidats de détection
+   → Prédire: 70,400 candidates de détection
    ↓
 6. Post-traitement
    → Supprimer les mauvaises prédictions (confiance < 0.3)
    → NMS (Non-Maximum Suppression) : regrouper les détections qui se chevauchent
    ↓
 7. Résultat final
-   Exemple: "Héron à (x=245, y=180, w=150, h=200) avec confiance 96%"
+   Example: "Héron à (x=245, y=180, w=150, h=200) avec confiance 96%"
 ```
 
 ---
@@ -293,32 +300,32 @@ Epoch 1:
     Gradients calculés
     ↓ Mise à jour des poids
     Weights -= learning_rate × gradients
-    
+
   Batch 2: [Image 5, Image 6, Image 7, ...]
     (même processus)
     Loss = 2.18 ← Déjà mieux !
-    
+
   ...
-  
+
   Validation: Évaluer sur les images de validation
     mAP (mean Average Precision) = 0.87
-    
+
 Epoch 2:
   Loss = 1.95 ← Continue de diminuer
   mAP = 0.89
-    
+
 Epoch 3:
   Loss = 1.62
   mAP = 0.91
-    
+
 ... (100 epochs typiquement)
 ```
 
-### 4.3 La Fonction de Perte (Loss)
+### 4.3 La Function de Perte (Loss)
 
-Le loss mesure : **"À quel point le modèle s'est trompé ?"**
+Le loss measure : **"À quel point le modèle s'est trompé ?"**
 
-Pour YOLO, c'est une combinaison de :
+Pour YOLO, c'est une combination de :
 
 ```
 Loss_total = Loss_localisation + Loss_confiance + Loss_classification
@@ -326,11 +333,11 @@ Loss_total = Loss_localisation + Loss_confiance + Loss_classification
 1. Loss_localisation
    ← Erreur sur la position et taille de la boîte
    ← GIoU (Generalized Intersection over Union)
-   
+
 2. Loss_confiance
    ← Erreur sur "est-ce vraiment un oiseau ?"
    ← Binary Cross-Entropy
-   
+
 3. Loss_classification
    ← Erreur sur "c'est quel oiseau ?"
    ← Cross-Entropy multi-classe
@@ -344,28 +351,27 @@ Loss_total = Loss_localisation + Loss_confiance + Loss_classification
 Prédiction erronée : le modèle a dit "mouette" au lieu de "héron"
 
   Loss = 5.2 (erreur grande)
-  
+
   ↓ Calcul des gradients (dérivées partielles)
-  
+
   "Pour réduire l'erreur, les poids de la couche 47 doivent augmenter de 0.003"
   "Les poids de la couche 52 doivent diminuer de 0.001"
   ...
-  
+
   ↓ Mise à jour (Gradient Descent)
-  
+
   w_nouvelle = w_ancienne - learning_rate × gradient
-  
-  Exemple: w = 0.5 - 0.001 × 3.0 = 0.497
-  
+
+  Example: w = 0.5 - 0.001 × 3.0 = 0.497
+
   ↓ Prédiction suivante avec ces nouveaux poids
-  
+
   Loss = 5.1 ← Un peu mieux !
 ```
 
 Le modèle ajuste **des millions de poids** de manière interdépendante. C'est mathématiquement très complexe, mais entièrement **différent d'if/else**.
 
 ---
-
 
 ### 5. Les Réseaux de Neurones Convolutifs (suite détaillée)
 
@@ -376,9 +382,9 @@ La section précédente expliquait l'idée générale des convolutions ; voici d
 ### 6.1 Préparation des données
 
 - Vérifie la qualité des labels : des labels incorrects dégradent fortement le modèle.
-- Équilibre les classes si possible (ou utilise pondération dans la perte).
+- Équilibre les classes si possible (ou utilize pondération dans la perte).
 - Sépare correctement train/validation/test.
-- Utilise des métadonnées (timestamp, localisation) si elles peuvent aider l'analyse.
+- Utilize des métadonnées (timestamp, localization) si elles peuvent aider l'analyse.
 
 ### 6.2 Augmentations recommandées
 
@@ -388,7 +394,7 @@ La section précédente expliquait l'idée générale des convolutions ; voici d
 
 ### 6.3 Hyperparamètres importants
 
-- `learning_rate` : paramètre clé ; utilise scheduler (cosine, step) ou warmup.
+- `learning_rate` : paramètre clé ; utilize scheduler (cosine, step) ou warmup.
 - `batch_size` : plus grand batch réduit le bruit des gradients ; attention à la mémoire GPU.
 - `weight_decay` : régularisation pour éviter l'overfitting.
 - `epochs` : surveille le loss et le mAP sur validation pour éviter le surapprentissage.
@@ -403,16 +409,16 @@ La section précédente expliquait l'idée générale des convolutions ; voici d
 
 ### 7.1 mAP (mean Average Precision)
 
-- mAP@0.5 : mesure courante pour object detection — considère une prédiction correcte si IoU ≥ 0.5.
-- mAP@[0.5:0.95] : mesure plus stricte et standard COCO, moyenne de 0.5 à 0.95 par pas de 0.05.
+- mAP@0.5 : measure courante pour object detection — considère une prédiction correcte si IoU ≥ 0.5.
+- mAP@[0.5:0.95] : measure plus stricte et standard COCO, moyenne de 0.5 à 0.95 par pas de 0.05.
 
 ### 7.2 Autres métriques utiles
 
 - Precision / Recall : indique le compromis entre faux positifs et faux négatifs.
 - Confusion matrix par classe : utile pour voir quelles classes sont confondues.
-- Analyse des erreurs (erreurs fréquentes, exemples de faux positifs/negatifs).
+- Analyze des erreurs (erreurs fréquentes, examples de faux positifs/negatifs).
 
-## 8. Optimisations d'inférence
+## 8. Optimizations d'inférence
 
 ### 8.1 Export et quantification
 
@@ -436,25 +442,28 @@ La section précédente expliquait l'idée générale des convolutions ; voici d
 - Collecte des images classées comme `INCERTITUDE` et `HORS_BDD` pour revue humaine.
 - Monitoring du drift (changement de distribution d'images) via métriques et sampling.
 
-## 10. Spécificités du projet (conseils pratiques)
+## 10. Spécificités du project (conseils pratiques)
 
 - Sauvegarder les images analysées dans `enregistrements/` classées par statut pour faciliter la revue et la réindexation.
 - Utiliser `vector_index.py` pour retrouver visuellement des images similaires et aider la décision sur les cas douteux.
 - Gérer la lecture audio avec un cooldown et uniquement pour analyses single-image.
 
-## 11. Commandes utiles (exemples)
+## 11. Commandes utiles (examples)
 
 Entraînement rapide :
+
 ```bash
 python train.py --img 640 --batch 16 --epochs 50 --data data/dataset_oiseaux.yaml --weights yolov5s.pt
 ```
 
-Inférence / analyse d'une image :
+Inférence / analyze d'une image :
+
 ```bash
 python analyse_oiseaux.py --mode image --source path/to/image.jpg
 ```
 
 Construire l'index CLIP+FAISS :
+
 ```bash
 python vector_index.py --build --sources dataset_oiseaux enregistrements --out vectors
 ```
@@ -465,7 +474,7 @@ python vector_index.py --build --sources dataset_oiseaux enregistrements --out v
 - Mauvais labels : audit et correction manuelle, utiliser des heuristiques pour détecter labels suspects.
 - Latence trop élevée : réduire résolution, quantifier, utiliser batch ou accélérateurs matériels.
 
-## 13. Ressources & références
+## 13. Resources & références
 
 - YOLOv5 repository : https://github.com/ultralytics/yolov5
 - CLIP repository : https://github.com/openai/CLIP
@@ -473,5 +482,4 @@ python vector_index.py --build --sources dataset_oiseaux enregistrements --out v
 
 ---
 
-Si tu veux, je peux transformer ces sections en un guide imprimable (PDF) ou générer un tableau de commandes et checkpoints pour la reproduction exacte des expériences. Dis‑moi si tu veux que je mette à jour aussi d'autres fichiers Markdown ou que je lance les tests/commits. 
-
+Si tu veux, je peux transformer ces sections en un guide imprimable (PDF) ou générer un tableau de commandes et checkpoints pour la reproduction exacte des expériences. Dis‑moi si tu veux que je mette à jour aussi d'autres fichiers Markdown ou que je lance les tests/commits.
