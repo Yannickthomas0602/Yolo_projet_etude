@@ -1,12 +1,13 @@
+from __future__ import annotations
+
+import json
 import os
 import time
-import json
 from datetime import datetime
-from typing import Union
 
 try:
-    from azure.storage.blob import BlobServiceClient, ContentSettings
     from azure.core.exceptions import ResourceExistsError
+    from azure.storage.blob import BlobServiceClient, ContentSettings
 except Exception:
     raise RuntimeError("Les packages Azure ne sont pas installés. Installez 'azure-storage-blob' dans votre venv.")
 
@@ -23,9 +24,7 @@ blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CON
 
 
 def ensure_container(container_name: str) -> None:
-    """
-    Crée le container si possible. Ignore l'erreur si le container existe déjà.
-    """
+    """Crée le container si possible. Ignore l'erreur si le container existe déjà."""
     try:
         blob_service_client.create_container(container_name)
     except ResourceExistsError:
@@ -40,18 +39,17 @@ def _action_from_status(status: str) -> str:
     if normalized_status == "BDD":
         return "bon effarouchement"
     if normalized_status == "INCERTITUDE":
-        return "enffarouchement par defaut"
+        return "enffarouchement par default"
     return "pas d'effarouchement"
 
 
 def transferer_fichiers_azure(
-    chemin_image_locale: Union[str, os.PathLike],
+    chemin_image_locale: str | os.PathLike,
     espece_oiseau: str,
     score_confiance: float,
     statut: str,
 ) -> bool:
-    """
-    Envoie une image et un JSON descriptif sur Azure Blob Storage.
+    """Envoie une image et un JSON descriptif sur Azure Blob Storage.
 
     - Image -> conteneur `archives-photos`
     - JSON  -> conteneur `archives-json`
@@ -79,7 +77,7 @@ def transferer_fichiers_azure(
 
         # 2) Prépare le JSON
         payload = {
-            "appareil": AZURE_APPAREIL,
+            "apparel": AZURE_APPAREIL,
             "oiseau": espece_oiseau,
             "confiance": round(float(score_confiance), 2),
             "action": _action_from_status(statut),
@@ -95,9 +93,13 @@ def transferer_fichiers_azure(
         print(f"[Azure] Envoi du fichier JSON {nom_texte} vers '{AZURE_JSON_CONTAINER}'...")
         ensure_container(AZURE_JSON_CONTAINER)
         blob_texte = blob_service_client.get_blob_client(container=AZURE_JSON_CONTAINER, blob=nom_texte)
-        blob_texte.upload_blob(texte_json_bytes, overwrite=True, content_settings=ContentSettings(content_type="application/json; charset=utf-8"))
+        blob_texte.upload_blob(
+            texte_json_bytes,
+            overwrite=True,
+            content_settings=ContentSettings(content_type="application/json; charset=utf-8"),
+        )
 
-        print("[Azure] Synchronisation réussie : Image + JSON sauvegardés !")
+        print("[Azure] Synchronization réussie : Image + JSON sauvegardés !")
         return True
 
     except Exception as exc:
