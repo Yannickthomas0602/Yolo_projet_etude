@@ -1,14 +1,14 @@
-# Guide complet du projet de reconnaissance d'oiseaux
+# Guide complete du project de reconnaissance d'oiseaux
 
-Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complet de reconnaissance d'oiseaux avec ce dépôt YOLOv5. Le prototype actuel est déjà organisé autour des 4 classes cibles, du dataset classé et d'une logique de décision BDD / incertitude / hors BDD.
+Ce document rassemble les explications, les bonnes pratiques et les commandes utiles pour construire un système complete de reconnaissance d'oiseaux avec ce dépôt YOLOv5. Le prototype actuel est déjà organisé autour des 4 classes cibles, du dataset classé et d'une logique de décision BDD / incertitude / hors BDD.
 
 Si tu veux lancer directement le modèle ou tester une image, commence par [LANCER_IA_OISEAUX.md](LANCER_IA_OISEAUX.md). Si tu veux suivre la démarche complète, lis aussi [SETUP_ENTRAINEMENT_OISEAUX.md](SETUP_ENTRAINEMENT_OISEAUX.md) et [JOURNAL_PROJET_OISEAUX.md](JOURNAL_PROJET_OISEAUX.md).
 
-Le projet final doit couvrir trois étapes:
+Le project final doit couvrir trois étapes:
 
 1. détecter l'oiseau dans une image ou un flux caméra,
 2. identifier son espèce,
-3. jouer automatiquement le son correspondant.
+3. jouer automatiquement le son correspondent.
 
 Contraintes fonctionnelles du prototype:
 
@@ -26,13 +26,13 @@ Le README du dépôt sépare clairement ces deux usages, avec une section détec
 
 ## 1. Quel pipeline choisir
 
-Pour un projet d'espèces d'oiseaux en temps réel, l'architecture la plus robuste est la suivante:
+Pour un project d'espèces d'oiseaux en temps réel, l'architecture la plus robuste est la suivante:
 
-1. un détecteur localise l'oiseau dans l'image,
+1. un détecteur localize l'oiseau dans l'image,
 2. un classifieur identifie l'espèce sur le recadrage de l'oiseau,
 3. une couche applicative joue le son associé à l'espèce détectée.
 
-Cette séparation a plusieurs avantages:
+Cette séparation a plusieurs advantages:
 
 - le détecteur apprend à trouver les oiseaux même dans des scènes complexes,
 - le classifieur apprend à distinguer les espèces avec des images centrées sur l'animal,
@@ -42,7 +42,7 @@ Si ton dataset contient uniquement une image par espèce, sans annotations de bo
 
 ## 1.1 Démarche suivie dans ce dépôt
 
-La démarche appliquée dans ce projet est simple et progressive :
+La démarche appliquée dans ce project est simple et progressive :
 
 1. classer les images du dossier brut dans 4 espèces finales,
 2. normaliser les noms de classes pour éviter les problèmes de chemins,
@@ -58,7 +58,7 @@ L'objectif n'est pas seulement de produire un modèle, mais aussi de garder une 
 
 Tu as déjà environ 650 images par espèce. C'est une bonne base pour démarrer, à condition de nettoyer le dataset avant l'entraînement.
 
-Dans cette version, limite le périmètre à 4 classes exactement, mais garde en tête qu'à ce stade le dataset n'est pas encore complet. Le but est d'obtenir un prototype fiable et simple à valider, puis de compléter les classes manquantes.
+Dans cette version, limit le périmètre à 4 classes exactement, mais garde en tête qu'à ce stade le dataset n'est pas encore complete. Le but est d'obtenir un prototype fiable et simple à valider, puis de compléter les classes manquantes.
 
 ### 2.1 Trier et nettoyer les images
 
@@ -82,7 +82,7 @@ Bonnes pratiques utiles:
 - supprimer les images mal étiquetées avant l'entraînement,
 - garder des images variées en angle, lumière, fond et distance.
 
-### 2.2 Organisation des dossiers
+### 2.2 Organization des dossiers
 
 Si tu fais de la classification, la structure recommandée est celle-ci:
 
