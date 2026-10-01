@@ -1,10 +1,10 @@
-# Analyse vectorielle — explication simple et sans maths
+# Analyze vectorielle — explication simple et sans math
 
-Cette page explique, avec des mots simples et des images mentales, ce qu'est l'analyse vectorielle et comment elle aide à reconnaître des photos d'oiseaux dans ce projet.
+Cette page explique, avec des mots simples et des images mentales, ce qu'est l'analyse vectorielle et comment elle aide à reconnaître des photos d'oiseaux dans ce project.
 
 ## Idée de base — l'empreinte digitale des images
 
-Imagine que chaque photo a une petite "fiche" invisible qui la décrit (couleurs dominantes, formes, textures). Cette fiche n'est pas du texte lisible par un humain, ce sont juste des nombres que l'ordinateur utilise — on appelle ça un "embedding".
+Imagine que chaque photo a une petite "fiche" invisible qui la décrit (couleurs dominantes, formes, textures). Cette fiche n'est pas du texte lisible par un humain, ce sont juste des nombres que l'ordinateur utilize — on appelle ça un "embedding".
 
 - Photo → on calcule sa fiche (embedding)
 - Deux photos similaires ont des fiches très proches (comme deux empreintes digitales qui se ressemblent)
@@ -14,11 +14,11 @@ Donc : au lieu de comparer les images pixel par pixel, on compare leurs fiches. 
 ## Qui fait quoi ? (sans jargon)
 
 - CLIP (ou un modèle similaire) : c'est l'outil qui regarde une image et fabrique sa fiche.
-- FAISS : c'est la grosse bibliothèque qui range toutes les fiches et trouve très vite celles qui se ressemblent.
+- FAISS : c'est la grosse bibliothèque qui range toutes les fiches et trouve très vite cells qui se ressemblent.
 
-Image simple : CLIP = le photographe qui transforme la photo en description, FAISS = le bibliothécaire qui retrouve les livres voisins dans un catalogue.
+Image simple : CLIP = le photographe qui transforme la photo en description, FAISS = le bibliothécaire qui retrouve les livres voisins dans un catalog.
 
-## Exemple concret pas à pas
+## Example concret pas à pas
 
 1. Tu prends une photo d'un oiseau.
 2. Le système calcule la fiche de cette photo (quelques milliers de chiffres invisibles).
@@ -26,7 +26,8 @@ Image simple : CLIP = le photographe qui transforme la photo en description, FAI
 4. Le système renvoie les photos proches et un score de similarité (plus le score est haut, plus les photos se ressemblent).
 5. On combine ce résultat avec ce que le classifieur YOLOv5 dit pour décider si c'est bien la même espèce.
 
-Exemple d'interprétation :
+Example d'interprétation :
+
 - Si la similarité est très forte et que YOLO dit aussi "héron", on accepte "héron".
 - Si YOLO est incertain mais FAISS trouve plusieurs photos très proches étiquetées "héron", on met "héron" en suggestion forte.
 - Si tout est faible, on signale "hors base" et on demande une revue humaine.
@@ -39,11 +40,11 @@ Exemple d'interprétation :
 
 ## Limites faciles à comprendre
 
-- Si la base contient de mauvaises étiquettes, FAISS va retrouver des mauvaises correspondances.
+- Si la base contient de mauvaises étiquettes, FAISS va retrouver des mauvaises correspondences.
 - Les photos très différentes (lumière, angle) peuvent donner des fiches différentes → moins de similarité.
-- FAISS stocke des données en mémoire : pour des millions de photos il faut prévoir plus de ressources.
+- FAISS stocke des données en mémoire : pour des millions de photos il faut prévoir plus de resources.
 
-## Où voir / tester dans ce projet
+## Où voir / tester dans ce project
 
 - Construire l'index (hors-ligne) : `python vector_index.py --build --sources dataset_oiseaux enregistrements --out vectors`
 - Tester une requête : le script `analyse_oiseaux.py` affiche les voisins visuels si `vectors/index.faiss` existe.
