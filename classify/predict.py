@@ -173,7 +173,9 @@ def run(
             s += f"{', '.join(f'{names[j]} {prob[j]:.2f}' for j in top5i)}, "
 
             # Write results
-            text = "\n".join([f"{status_label}: {names[top1i]} {top1_score:.2f}"] + [f"{prob[j]:.2f} {names[j]}" for j in top5i])
+            text = "\n".join(
+                [f"{status_label}: {names[top1i]} {top1_score:.2f}"] + [f"{prob[j]:.2f} {names[j]}" for j in top5i]
+            )
             if save_img or view_img:  # Add bbox to image
                 annotator.text([32, 32], text, txt_color=(255, 255, 255))
             if save_txt:  # Write to file
