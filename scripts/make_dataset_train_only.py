@@ -1,16 +1,16 @@
-from pathlib import Path
 import os
 import shutil
+from pathlib import Path
 
-root = Path('dataset_oiseaux')
-out = Path('dataset_train_only')
+root = Path("dataset_oiseaux")
+out = Path("dataset_train_only")
 
 if out.exists():
-    print('Removing existing', out)
+    print("Removing existing", out)
     shutil.rmtree(out)
 
-for split in ['train', 'val']:
-    for cls in (root / 'train').iterdir():
+for split in ["train", "val"]:
+    for cls in (root / "train").iterdir():
         if not cls.is_dir():
             continue
         dest_dir = out / split / cls.name
@@ -24,4 +24,4 @@ for split in ['train', 'val']:
                 except Exception:
                     # fallback to copy if hardlink fails
                     shutil.copy2(f, dst)
-print('Done')
+print("Done")

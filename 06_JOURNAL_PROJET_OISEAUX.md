@@ -1,7 +1,6 @@
+# Journal du project — Reconnaissance d'oiseaux (YOLOv5)
 
-# Journal du projet — Reconnaissance d'oiseaux (YOLOv5)
-
-Ce journal relate de manière chronologique les étapes, décisions et modifications importantes pour le projet. Il vise à garder une trace utile pour les développeurs et les contributeurs.
+Ce journal relate de manière chronologique les étapes, décisions et modifications importantes pour le project. Il vise à garder une trace utile pour les développeurs et les contributeurs.
 
 ---
 
@@ -15,17 +14,17 @@ Ce journal relate de manière chronologique les étapes, décisions et modificat
 
 ## Chronologie synthétique des actions
 
-### 1) Initialisation et dataset
+### 1) Initialization et dataset
 
 - Création du dépôt et premières versions du dataset `dataset_oiseaux/` (train/val/test) pour 4 classes.
-- Nettoyage et normalisation des labels (fonction `normalize_label` dans `analyse_oiseaux.py`).
+- Nettoyage et normalization des labels (function `normalize_label` dans `analyse_oiseaux.py`).
 
 ### 2) Entraînement et expérimentations
 
 - Plusieurs runs d'entraînement dans `runs/train-cls/` avec sauvegarde des meilleurs checkpoints (`best.pt`).
 - Ajout de wrapper `train_wrapper.py` pour tester rapidement variations d'hyperparamètres.
 
-### 3) Déploiement d'usage et analyse
+### 3) Déploiement d'usage et analyze
 
 - Écriture de `analyse_oiseaux.py` pour lancer `classify/predict.py`, parser la sortie et archiver les résultats.
 - Ajout du mécanisme de classification BDD / INCERTITUDE / HORS_BDD avec seuils par défaut et post-traitement.
@@ -37,7 +36,7 @@ Ce journal relate de manière chronologique les étapes, décisions et modificat
 
 ### 5) Lecture audio et UX
 
-- Ajout des fonctions `find_audio_file`, `play_audio`, `play_bird_audio` pour jouer des cris d'oiseaux en mode image unique.
+- Ajout des functions `find_audio_file`, `play_audio`, `play_bird_audio` pour jouer des cris d'oiseaux en mode image unique.
 - Règle : pas de lecture audio en mode batch.
 
 ### 6) Réorganisation documentaire
@@ -55,9 +54,9 @@ Ce journal relate de manière chronologique les étapes, décisions et modificat
 
 ---
 
-## Fichiers et fonctions clés (référence rapide)
+## Fichiers et functions clés (référence rapide)
 
-- `yolov5/analyse_oiseaux.py` : fonctions d'inférence, parsing, sauvegarde, audio, caméra, Azure.
+- `yolov5/analyse_oiseaux.py` : functions d'inférence, parsing, sauvegarde, audio, caméra, Azure.
 - `yolov5/vector_index.py` : construction et interrogation d'index FAISS via CLIP.
 - `yolov5/classify/predict.py` : script YOLOv5 appelé en sous-processus pour la classification.
 - `cri_predateur_ou_detresse/` : assets audio organisés par espèce.
@@ -77,7 +76,7 @@ Ce journal relate de manière chronologique les étapes, décisions et modificat
 - Centraliser les seuils dans un fichier de configuration (ex: `config.yaml`) plutôt que valeurs codées en dur.
 - Ajouter tests unitaires pour `parse_prediction_line`, `find_audio_file`, `query_image`.
 - Implémenter cooldown audio (timestamp) pour éviter lectures répétées en mode caméra.
-- Ajouter un processus d'ajout incrémental dans `vector_index.py` pour éviter rebuild complet.
+- Ajouter un processus d'ajout incrémental dans `vector_index.py` pour éviter rebuild complete.
 
 ---
 
@@ -95,4 +94,3 @@ Ce journal relate de manière chronologique les étapes, décisions et modificat
 4. Commit & push des changements sur une branche `docs/renommer-docs`.
 
 Dis‑moi la prochaine action à réaliser.
-
